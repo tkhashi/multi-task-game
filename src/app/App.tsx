@@ -1,5 +1,10 @@
+import { createGameViewModel, createInitialGameState, createSceneViewModel } from './runtime/GameViewModelFactory';
 import { TitleScreen } from '../ui/screens/TitleScreen';
 
 export function App() {
-  return <TitleScreen />;
+  const state = createInitialGameState();
+  const viewModel = createGameViewModel(state);
+  const sceneViewModel = createSceneViewModel(state);
+
+  return <TitleScreen viewModel={viewModel} sceneViewModel={sceneViewModel} />;
 }

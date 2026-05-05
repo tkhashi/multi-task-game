@@ -7,7 +7,7 @@
   - 完了すると開発サーバー起動時にタイトル画面のプレースホルダーが表示され、テストコマンドが失敗せず起動する。
   - _Requirements: 11.1_
   - _Boundary: Tooling, AppShell_
-- [ ] 1.2 ゲーム全体で使う正規状態、入力、コマンド、イベント、表示モデルの共通契約を定義する
+- [x] 1.2 ゲーム全体で使う正規状態、入力、コマンド、イベント、表示モデルの共通契約を定義する
   - `GameState`、`InputFrame`、`GameCommand`、`GameEvent`、`GameViewModel`、`SceneViewModel` の整合した型を揃える。
   - 主要ゲージ、タスク上限、結果表示に必要な最小限の値が共通契約に含まれるようにする。
   - 完了すると共通契約だけで Runtime、UI、Scene が同じ state shape を参照できる。

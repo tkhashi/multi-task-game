@@ -1,24 +1,29 @@
 import { PhaserGameHost } from '../../adapters/phaser/PhaserGameHost';
+import type { GameViewModel, SceneViewModel } from '../../app/runtime/GameViewModelFactory';
 
-export function TitleScreen() {
+type TitleScreenProps = {
+  viewModel: GameViewModel;
+  sceneViewModel: SceneViewModel;
+};
+
+export function TitleScreen({ viewModel, sceneViewModel }: TitleScreenProps) {
+  const { screen } = viewModel;
+
   return (
     <main className="title-screen">
       <section className="title-screen__hero">
         <p className="title-screen__eyebrow">PC Browser Prototype</p>
-        <h1>育児マルチタスクゲーム</h1>
-        <p className="title-screen__lead">タイトル画面プレースホルダー</p>
-        <p className="title-screen__body">
-          Vite・React・TypeScript・Phaser の開発基盤を起動できる最小構成です。
-          次タスクから開始前確認、HUD、ゲーム進行をここへ積み上げます。
-        </p>
+        <h1>{screen.title}</h1>
+        <p className="title-screen__lead">{screen.subtitle}</p>
+        <p className="title-screen__body">{screen.body}</p>
         <div className="title-screen__meta" aria-label="開発環境メモ">
-          <span>localhost secure context 前提</span>
-          <span>ローカル処理のみ</span>
-          <span>Phaser viewport 接続済み</span>
+          {screen.highlights.map((highlight) => (
+            <span key={highlight}>{highlight}</span>
+          ))}
         </div>
       </section>
 
-      <PhaserGameHost />
+      <PhaserGameHost viewModel={sceneViewModel} />
     </main>
   );
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import type { SceneViewModel } from '../../app/runtime/GameViewModelFactory';
+
 const READY_MESSAGE = 'ゲームビューを準備中';
 const ACTIVE_MESSAGE = 'Phaser タイトルプレビューを表示中';
 const ERROR_MESSAGE = 'ゲームビューの初期化に失敗しました';
@@ -8,7 +10,11 @@ type DestroyableGame = {
   destroy(removeCanvas?: boolean): void;
 };
 
-export function PhaserGameHost() {
+type PhaserGameHostProps = {
+  viewModel: SceneViewModel;
+};
+
+export function PhaserGameHost({ viewModel }: PhaserGameHostProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState(READY_MESSAGE);
 
@@ -45,7 +51,7 @@ export function PhaserGameHost() {
           panel.setStrokeStyle(2, 0xf7b267, 0.8);
 
           this.add
-            .text(width / 2, height / 2 - 32, 'Title Screen Preview', {
+            .text(width / 2, height / 2 - 32, viewModel.headline, {
               color: '#fffaf2',
               fontFamily: 'Georgia, "Times New Roman", serif',
               fontSize: '28px',
@@ -54,7 +60,7 @@ export function PhaserGameHost() {
             .setOrigin(0.5);
 
           this.add
-            .text(width / 2, height / 2 + 18, 'AppShell / Phaser viewport placeholder', {
+            .text(width / 2, height / 2 + 18, viewModel.supportingText, {
               color: '#d8e6ff',
               fontFamily: '"Trebuchet MS", sans-serif',
               fontSize: '16px',
@@ -89,7 +95,7 @@ export function PhaserGameHost() {
       isDisposed = true;
       game?.destroy(true);
     };
-  }, []);
+  }, [viewModel.headline, viewModel.supportingText]);
 
   return (
     <section className="title-screen__viewport">
