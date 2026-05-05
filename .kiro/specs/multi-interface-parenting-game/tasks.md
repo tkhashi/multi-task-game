@@ -1,0 +1,171 @@
+# Implementation Plan
+
+- [ ] 1. Foundation: 開発基盤と共通ランタイム契約を整える
+- [ ] 1.1 Vite、React、TypeScript、Phaser、Vitest、Playwright を使う開発基盤を初期化する
+  - 開発サーバー、ビルド、単体テスト、E2E テストの基本コマンドを実行できる状態にする。
+  - secure context 前提でローカル開発できるよう、localhost 起動と公開アセット参照の前提を整える。
+  - 完了すると開発サーバー起動時にタイトル画面のプレースホルダーが表示され、テストコマンドが失敗せず起動する。
+  - _Requirements: 11.1_
+  - _Boundary: Tooling, AppShell_
+- [ ] 1.2 ゲーム全体で使う正規状態、入力、コマンド、イベント、表示モデルの共通契約を定義する
+  - `GameState`、`InputFrame`、`GameCommand`、`GameEvent`、`GameViewModel`、`SceneViewModel` の整合した型を揃える。
+  - 主要ゲージ、タスク上限、結果表示に必要な最小限の値が共通契約に含まれるようにする。
+  - 完了すると共通契約だけで Runtime、UI、Scene が同じ state shape を参照できる。
+  - _Requirements: 2.2, 3.1, 4.2, 10.1_
+  - _Boundary: GameState, InputFrame, ViewModels_
+- [ ] 1.3 InMemory store、Clock、Random、GameRuntime の土台を実装する
+  - phase ごとの command dispatch、購読、tick の基本経路を持つ Runtime を作る。
+  - タイトル、権限確認、デバイスチェック、開始待機の phase を仮の view model で切り替えられるようにする。
+  - 完了すると UI からの command に応じて phase が切り替わり、購読側が最新 view model を受け取れる。
+  - _Requirements: 2.1, 2.3, 2.6, 10.1_
+  - _Boundary: GameRuntime, InMemoryGameStore_
+
+- [ ] 2. Foundation: センサー入力と開始前セットアップを成立させる
+- [ ] 2.1 (P) マイク権限、キャリブレーション、RMS snapshot を実装する
+  - マイク許可、ノイズ床計測、発声閾値、Too Loud 閾値を 1 セッション内で確定できるようにする。
+  - 呼びかけ連打としーっ判定に必要な音量、ピーク、安定性の snapshot を返せるようにする。
+  - 完了するとデバイスチェックでマイク準備完了か失敗理由を判定でき、playing 中に音量 snapshot を継続取得できる。
+  - _Requirements: 1.1, 1.3, 1.5, 7.2, 7.4, 8.1, 8.2, 8.3, 8.4, 11.2, 11.3, 11.5, 11.7_
+  - _Boundary: WebAudioAnalyzer_
+- [ ] 2.2 (P) カメラ権限、Worker 推論、顔位置 snapshot を実装する
+  - カメラ許可、MediaPipe 起動、顔検出ウォームアップ、最新 face box のキャッシュ取得を実装する。
+  - 顔未検出、モデル起動失敗、Worker 起動失敗を区別して返せるようにする。
+  - 完了するとデバイスチェックでカメラ準備完了か失敗理由を判定でき、playing 中に顔位置 snapshot を継続取得できる。
+  - _Requirements: 1.1, 1.3, 1.5, 9.2, 9.3, 9.4, 11.2, 11.3, 11.5, 11.7_
+  - _Boundary: MediaPipeFaceAdapter_
+- [ ] 2.3 InputFrameCollector と開始前デバイスチェック導線を統合する
+  - keyboard、mouse、microphone、camera の snapshot を 1 フレームに束ねる collector を実装する。
+  - 権限拒否、デバイス失敗、再試行、ready への遷移条件を Runtime と接続する。
+  - 完了すると開始前画面でマイクとカメラの可否が表示され、両方成功した場合のみ ready へ進める。
+  - _Requirements: 1.2, 1.4, 2.1, 11.4, 11.5, 11.6, 11.7_
+  - _Boundary: InputFrameCollector, GameRuntime, SetupFlow_
+
+- [ ] 3. Core: ゲームルールと各タスクロジックを実装する
+- [ ] 3.1 ゲージ、タイマー、破綻条件、基本スコア更新を実装する
+  - 5 分タイマー、赤ちゃんの機嫌、親の心労、危険域、破綻継続時間、結果ランク計算の基礎を実装する。
+  - タイムアップ、単独破綻、同時危険破綻の event を返せるようにする。
+  - 完了すると入力なしの tick だけでも残り時間、主要ゲージ、破綻 phase 遷移が再現できる。
+  - _Requirements: 2.2, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 10.5_
+  - _Boundary: GaugeReducer, ScoreReducer, GameAggregator_
+- [ ] 3.2 タスク発生制御と TaskRegistry を実装する
+  - 同時発生数、手元 2 件、センサー 2 件、マイク 1 件、カメラ 1 件の制約を守る scheduler を作る。
+  - フェーズ後半ほど複合入力が必要になる重みづけと、focused hand task の切替規則を実装する。
+  - 完了すると `playing` 中の tick で発生候補が制御され、各 task kind を registry 経由で更新できる。
+  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
+  - _Boundary: GameScheduler, TaskRegistry_
+- [ ] 3.3 (P) 呼びかけ連打としーっのタスクロジックを実装する
+  - ノーツ判定、Perfect と Good、Miss、Too Loud、成功率に応じた効果を実装する。
+  - 声量帯維持、無音時停止、無音継続時失敗、大声ペナルティを実装する。
+  - 完了すると microphone snapshot だけで両タスクの進行、成功、失敗、機嫌変動を検証できる。
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
+  - _Boundary: VoiceRhythmTaskLogic, ShhTaskLogic_
+- [ ] 3.4 (P) 顔ポジション合わせのタスクロジックを実装する
+  - 位置ずれ、上下ずれ、距離ずれのヒント生成と、必要維持時間の成功判定を実装する。
+  - 顔未検出継続時の心労ペナルティと、後半の複数目標枠対応を支える状態更新を実装する。
+  - 完了すると camera snapshot だけでヒント、保持時間、成功と失敗を検証できる。
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
+  - _Boundary: FacePositionTaskLogic_
+- [ ] 3.5 (P) 片付けタスクのルールを実装する
+  - フィールド内移動、拾う、収納する、部分介入、放置時の心労圧力を実装する。
+  - 正しい収納先での完了、保持状態、連続収納ボーナスに必要な task state 更新を実装する。
+  - 完了すると keyboard 入力とフィールド状態だけで片付け task の進捗と心労変動を検証できる。
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
+  - _Boundary: CleanupTaskLogic_
+- [ ] 3.6 (P) ベビーフード作りタスクのルールを実装する
+  - 食材選択、すり潰し、加熱、冷ます、食べさせるの工程進行と途中再開を実装する。
+  - 適温成功、焦げ、冷めすぎ、品質差分、内部数値を隠した状態ラベルを実装する。
+  - 完了すると mouse 入力と工程状態だけで料理 task の進捗、失敗、完了効果を検証できる。
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
+  - _Boundary: CookingTaskLogic_
+
+- [ ] 4. Core: 描画と画面遷移のプレゼンテーションを実装する
+- [ ] 4.1 Phaser game host と focused hand task の scene 切替を実装する
+  - Runtime から受け取る scene view model に応じて、中央ゲームビューを差し替えられる host を作る。
+  - cleanup と cooking を同じゲームコンテナ内で切り替え、GameState を Scene が保持しない形にする。
+  - 完了すると focused hand task の変更に応じて、Phaser 側の表示が切り替わる。
+  - _Requirements: 4.5, 10.1_
+  - _Boundary: PhaserGameHost, MainScene_
+- [ ] 4.2 (P) 片付けビューと keyboard 入力連携を実装する
+  - 片付け用フィールド、親キャラクター、散らかった物、収納先の見た目と操作反映を作る。
+  - keyboard adapter からの入力が focused cleanup task にだけ反映されるようにする。
+  - 完了すると片付け task 発生中に、移動、拾う、収納の結果が画面上で確認できる。
+  - _Depends: 3.5, 4.1_
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 10.4_
+  - _Boundary: PhaserSceneBridge, KeyboardAdapter_
+- [ ] 4.3 (P) ベビーフードビューと mouse 入力連携を実装する
+  - 工程ごとの表示、円運動、加熱状態、冷ます待機、食べさせる操作の見た目を作る。
+  - mouse adapter からの入力が focused cooking task にだけ反映されるようにする。
+  - 完了すると料理 task 発生中に、工程進行と焦げや完成の状態が画面上で確認できる。
+  - _Depends: 3.6, 4.1_
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 10.4_
+  - _Boundary: PhaserSceneBridge, MouseAdapter_
+- [ ] 4.4 タイトル、権限確認、デバイスチェック、開始待機の各画面を実装する
+  - 権限の利用目的、非保存、非送信、再試行導線、開始可否を React 画面で表示する。
+  - デバイスチェック成功時のみ本編開始できる操作導線を整える。
+  - 完了すると setup phase 一式が React 画面だけで完結し、開始可否が目視で確認できる。
+  - _Depends: 2.3_
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 11.4, 11.5, 11.6, 11.7_
+  - _Boundary: ReactShell, SetupScreens_
+- [ ] 4.5 プレイ中 HUD とセンサー状態表示を実装する
+  - 残り時間、2 つの主要ゲージ、発生中 task 一覧、急ぎ度、センサー状態、危険表示を常時表示する。
+  - 音量数値や顔座標などの内部数値を露出せず、ラベル、アイコン、動きで状態を伝える。
+  - 完了するとプレイ中画面で、次の優先行動を判断できる HUD 情報が一画面で見える。
+  - _Depends: 1.3, 3.1_
+  - _Requirements: 2.3, 3.4, 10.1, 10.2, 10.3, 10.4, 11.5, 11.6_
+  - _Boundary: ReactShell, GaugeHud, TaskPanels_
+- [ ] 4.6 ポーズ、ゲームオーバー、リザルト画面を実装する
+  - ポーズ復帰、ゲームオーバー理由、評価ランク、主要結果指標、一言コメントを表示する。
+  - リトライ操作でタイトルへ戻る導線を screen component 側に用意する。
+  - 完了するとセッション終了後に結果画面が表示され、リトライ導線が目視確認できる。
+  - _Depends: 1.3, 3.1_
+  - _Requirements: 2.4, 2.5, 2.6, 10.5_
+  - _Boundary: ReactShell, ResultScreens_
+
+- [ ] 5. Integration: 全体のゲームループと複合操作を接続する
+- [ ] 5.1 Runtime、collector、scheduler、task logic を 1 つのプレイループに統合する
+  - gameplay tick で入力収集、task 更新、ゲージ更新、scene 更新、HUD 更新が順に流れるようにする。
+  - focused hand task の切替、センサー task の同時進行、開始からタイムアップまでの phase 進行を接続する。
+  - 完了すると 1 プレイを通して task が発生し、操作に応じてゲージと表示が連動する。
+  - _Depends: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.1, 4.4, 4.5_
+  - _Requirements: 2.2, 2.3, 3.2, 4.5, 4.6, 5.5, 6.3, 9.5, 10.1_
+  - _Boundary: GameRuntime, GameAggregator, InputFrameCollector_
+- [ ] 5.2 UI と Scene の更新経路を Runtime へ接続する
+  - view model factory から React HUD と Phaser scene の両方へ描画情報を渡す経路を接続する。
+  - setup 画面から playing、playing から result や gameOver への見た目の切替を Runtime 駆動に統一する。
+  - 完了すると同じ state 更新が HUD と中央ゲームビューの両方へ反映される。
+  - _Depends: 4.1, 4.4, 4.5, 4.6, 5.1_
+  - _Requirements: 2.3, 2.4, 10.1, 10.4, 10.5_
+  - _Boundary: GameViewModelFactory, ReactShell, PhaserGameHost_
+- [ ] 5.3 複合操作ボーナス、警告表示、再試行導線、リソース解放を統合する
+  - センサー成功中の手元進行を追加スコアや結果評価へ反映し、危険状態や失敗を警告表示へつなぐ。
+  - リトライ時の state 初期化、pause 復帰、終了時のマイクとカメラ停止を実装する。
+  - 完了すると複合操作の報酬、ゲームオーバー、リザルト、リトライ、デバイス解放が一連で動作する。
+  - _Depends: 4.2, 4.3, 5.2_
+  - _Requirements: 2.5, 2.6, 4.7, 7.5, 8.5, 9.5, 10.5, 11.5_
+  - _Boundary: IntegrationFlow, RuntimeLifecycle_
+
+- [ ] 6. Validation: 自動検証で主要フローを固定する
+- [ ] 6.1 reducer と task logic の単体テストを実装する
+  - ゲージ、破綻、scheduler、voice、shh、face、cleanup、cooking の unit test を追加する。
+  - 完了すると主要ルール変更時に domain 単位の失敗を自動検知できる。
+  - _Requirements: 3.5, 3.6, 3.7, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4_
+  - _Boundary: DomainValidation_
+- [ ] 6.2 Runtime と adapter contract の統合テストを実装する
+  - Runtime の phase 遷移、collector の frame 集約、audio と camera の contract test を追加する。
+  - setup 成功と失敗の両方で開始条件が守られることを検証する。
+  - 完了すると device setup と play loop の統合面で回帰を自動検知できる。
+  - _Depends: 5.3_
+  - _Requirements: 1.4, 1.5, 2.1, 2.2, 2.3, 11.4, 11.5_
+  - _Boundary: RuntimeValidation, AdapterContracts_
+- [ ] 6.3 Playwright で開始前導線と 1 プレイの主要シナリオを検証する
+  - 権限拒否時の開始不可、開始成功後のプレイ進行、タイムアップまたはゲームオーバー後のリザルト表示を検証する。
+  - 主要な HUD 情報と再試行導線がブラウザ操作で確認できるようにする。
+  - 完了すると MVP のクリティカルフローが E2E で再現され、回帰時に画面導線の破綻を検知できる。
+  - _Depends: 5.3, 6.2_
+  - _Requirements: 1.2, 1.5, 2.4, 2.5, 2.6, 10.1, 10.5, 11.4, 11.5_
+  - _Boundary: E2EValidation_
+
+## Implementation Notes
+
+- MediaPipe の `detectForVideo()` は同期実行なので、camera 側は Worker 分離を前提に進める。
+- マイクとカメラの開始条件は secure context に依存するため、ローカル開発と E2E 実行は localhost 前提で確認する。
