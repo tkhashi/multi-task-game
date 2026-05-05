@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [ ] 1. Foundation: 開発基盤と共通ランタイム契約を整える
-- [ ] 1.1 Vite、React、TypeScript、Phaser、Vitest、Playwright を使う開発基盤を初期化する
+- [x] 1.1 Vite、React、TypeScript、Phaser、Vitest、Playwright を使う開発基盤を初期化する
   - 開発サーバー、ビルド、単体テスト、E2E テストの基本コマンドを実行できる状態にする。
   - secure context 前提でローカル開発できるよう、localhost 起動と公開アセット参照の前提を整える。
   - 完了すると開発サーバー起動時にタイトル画面のプレースホルダーが表示され、テストコマンドが失敗せず起動する。
@@ -167,5 +167,6 @@
 
 ## Implementation Notes
 
+- Phaser の初期導入だけでも build chunk warning が出るため、scene や asset が増える前に code splitting 方針を次タスク以降で確認する。
 - MediaPipe の `detectForVideo()` は同期実行なので、camera 側は Worker 分離を前提に進める。
 - マイクとカメラの開始条件は secure context に依存するため、ローカル開発と E2E 実行は localhost 前提で確認する。
