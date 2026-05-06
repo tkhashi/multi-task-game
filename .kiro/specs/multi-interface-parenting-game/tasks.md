@@ -13,7 +13,7 @@
   - 完了すると共通契約だけで Runtime、UI、Scene が同じ state shape を参照できる。
   - _Requirements: 2.2, 3.1, 4.2, 10.1_
   - _Boundary: GameState, InputFrame, ViewModels_
-- [ ] 1.3 InMemory store、Clock、Random、GameRuntime の土台を実装する
+- [x] 1.3 InMemory store、Clock、Random、GameRuntime の土台を実装する
   - phase ごとの command dispatch、購読、tick の基本経路を持つ Runtime を作る。
   - タイトル、権限確認、デバイスチェック、開始待機の phase を仮の view model で切り替えられるようにする。
   - 完了すると UI からの command に応じて phase が切り替わり、購読側が最新 view model を受け取れる。
@@ -170,3 +170,4 @@
 - Phaser の初期導入だけでも build chunk warning が出るため、scene や asset が増える前に code splitting 方針を次タスク以降で確認する。
 - MediaPipe の `detectForVideo()` は同期実行なので、camera 側は Worker 分離を前提に進める。
 - マイクとカメラの開始条件は secure context に依存するため、ローカル開発と E2E 実行は localhost 前提で確認する。
+- `GameRuntime.tick()` は 3.1 の `GameAggregator` 導入まで phase-safe な no-op に保ち、時間経過や終了判定の ownership を Runtime に持たせない。
