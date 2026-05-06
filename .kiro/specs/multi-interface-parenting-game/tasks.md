@@ -21,7 +21,7 @@
   - _Boundary: GameRuntime, InMemoryGameStore_
 
 - [ ] 2. Foundation: センサー入力と開始前セットアップを成立させる
-- [ ] 2.1 (P) マイク権限、キャリブレーション、RMS snapshot を実装する
+- [x] 2.1 (P) マイク権限、キャリブレーション、RMS snapshot を実装する
   - マイク許可、ノイズ床計測、発声閾値、Too Loud 閾値を 1 セッション内で確定できるようにする。
   - 呼びかけ連打としーっ判定に必要な音量、ピーク、安定性の snapshot を返せるようにする。
   - 完了するとデバイスチェックでマイク準備完了か失敗理由を判定でき、playing 中に音量 snapshot を継続取得できる。
@@ -171,3 +171,4 @@
 - MediaPipe の `detectForVideo()` は同期実行なので、camera 側は Worker 分離を前提に進める。
 - マイクとカメラの開始条件は secure context に依存するため、ローカル開発と E2E 実行は localhost 前提で確認する。
 - `GameRuntime.tick()` は 3.1 の `GameAggregator` 導入まで phase-safe な no-op に保ち、時間経過や終了判定の ownership を Runtime に持たせない。
+- `WebAudioAnalyzer` は `getUserMedia` と `AudioContext` を DI 可能にしてあるため、2.3 以降の統合では browser 実機依存を増やさず contract test を拡張できる。
