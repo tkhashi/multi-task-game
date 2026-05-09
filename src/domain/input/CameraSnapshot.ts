@@ -17,6 +17,12 @@ export interface NormalizedFaceBox {
   height: number;
 }
 
+export interface CameraDetectionMetadata {
+  lastProcessedAtMs: number | null;
+  lastDetectedAtMs: number | null;
+  stale: boolean;
+}
+
 export interface CameraSnapshot {
   permission: PermissionState;
   readiness: DeviceReadiness;
@@ -24,6 +30,7 @@ export interface CameraSnapshot {
   faceDetected: boolean;
   faceBox: NormalizedFaceBox | null;
   hint: CameraHint;
+  detection: CameraDetectionMetadata;
 }
 
 export function createIdleCameraSnapshot(): CameraSnapshot {
@@ -34,5 +41,10 @@ export function createIdleCameraSnapshot(): CameraSnapshot {
     faceDetected: false,
     faceBox: null,
     hint: 'show-face',
+    detection: {
+      lastProcessedAtMs: null,
+      lastDetectedAtMs: null,
+      stale: false,
+    },
   };
 }

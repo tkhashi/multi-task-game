@@ -27,7 +27,7 @@
   - 完了するとデバイスチェックでマイク準備完了か失敗理由を判定でき、playing 中に音量 snapshot を継続取得できる。
   - _Requirements: 1.1, 1.3, 1.5, 7.2, 7.4, 8.1, 8.2, 8.3, 8.4, 11.2, 11.3, 11.5, 11.7_
   - _Boundary: WebAudioAnalyzer_
-- [ ] 2.2 (P) カメラ権限、Worker 推論、顔位置 snapshot を実装する
+- [x] 2.2 (P) カメラ権限、Worker 推論、顔位置 snapshot を実装する
   - カメラ許可、MediaPipe 起動、顔検出ウォームアップ、最新 face box のキャッシュ取得を実装する。
   - 顔未検出、モデル起動失敗、Worker 起動失敗を区別して返せるようにする。
   - 完了するとデバイスチェックでカメラ準備完了か失敗理由を判定でき、playing 中に顔位置 snapshot を継続取得できる。
@@ -172,3 +172,4 @@
 - マイクとカメラの開始条件は secure context に依存するため、ローカル開発と E2E 実行は localhost 前提で確認する。
 - `GameRuntime.tick()` は 3.1 の `GameAggregator` 導入まで phase-safe な no-op に保ち、時間経過や終了判定の ownership を Runtime に持たせない。
 - `WebAudioAnalyzer` は `getUserMedia` と `AudioContext` を DI 可能にしてあるため、2.3 以降の統合では browser 実機依存を増やさず contract test を拡張できる。
+- `MediaPipeFaceAdapter` は `/models/face_landmarker.task` と `/vendor/mediapipe/wasm` を same-origin で前提にし、`CameraSnapshot.detection` の timestamp で stale 判定する。
