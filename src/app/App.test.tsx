@@ -104,6 +104,8 @@ describe('App', () => {
 
     expect(markup).toContain('開始前確認');
     expect(markup).toContain('音声と映像はブラウザ内でのみ処理されます');
+    expect(markup).toContain('音声と映像は保存しません');
+    expect(markup).toContain('外部サーバーへ送信しません');
   });
 
   it('renders command-only controls for the current runtime phase', () => {
@@ -133,5 +135,54 @@ describe('App', () => {
     expect(markup).toContain('環境音');
     expect(markup).toContain('静かな場所');
     expect(markup).toContain('もう少し左へ移動してください。');
+    expect(markup).toContain('本編を開始できます');
+    expect(markup).toContain('マイクとカメラの両方が利用可能です');
+  });
+
+  it('renders a retryable setup status when a permission is denied', async () => {
+    const runtime = createGameRuntime({
+      audioAnalyzer: {
+        async start() {
+          return {
+            ok: false as const,
+            error: { kind: 'permissionDenied' as const },
+          };
+        },
+        stop() {},
+        sample() {
+          return createIdleMicrophoneSnapshot();
+        },
+      },
+      faceDetector: new FakeFaceDetector(),
+      clock: { nowMs: () => 1234 },
+    });
+
+    runtime.dispatch({ type: 'openPermissionCheck' });
+    runtime.dispatch({ type: 'beginDeviceCheck' });
+    await flushMicrotasks();
+
+    const markup = renderToStaticMarkup(<App runtime={runtime} />);
+
+    expect(markup).toContain('開始できません');
+    expect(markup).toContain('ブラウザ設定から再許可が必要です。');
+    expect(markup).toContain('もう一度確認する');
+  });
+
+  it('surfaces that the player can start only after both devices are ready', async () => {
+    const runtime = createGameRuntime({
+      audioAnalyzer: new FakeAudioAnalyzer(),
+      faceDetector: new FakeFaceDetector(),
+      clock: { nowMs: () => 1234 },
+    });
+
+    runtime.dispatch({ type: 'openPermissionCheck' });
+    runtime.dispatch({ type: 'beginDeviceCheck' });
+    await flushMicrotasks();
+
+    const markup = renderToStaticMarkup(<App runtime={runtime} />);
+
+    expect(markup).toContain('本編を開始できます');
+    expect(markup).toContain('マイクとカメラの両方が利用可能です');
+    expect(markup).toContain('本編を開始');
   });
 });

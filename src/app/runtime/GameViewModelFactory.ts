@@ -11,11 +11,16 @@ import { createInitialGameState } from '../../domain/game/GameState';
 import type { CameraHint, CameraSnapshot } from '../../domain/input/CameraSnapshot';
 import type { MicrophoneSnapshot } from '../../domain/input/MicrophoneSnapshot';
 import type {
+  CleanupTaskState,
   CookingTaskState,
   HandTaskState,
   TaskInstanceState,
   TaskUrgency,
 } from '../../domain/tasks/TaskTypes';
+import {
+  CLEANUP_STORAGE_POSITIONS,
+  normalizeCleanupPosition,
+} from '../../domain/tasks/cleanup/CleanupField';
 
 export interface GaugeViewModel {
   label: string;
@@ -99,12 +104,56 @@ export interface FocusedTaskSceneViewModel {
   detail: string;
 }
 
+export interface CleanupSceneStorageViewModel {
+  kind: 'basket' | 'box' | 'kitchen';
+  label: string;
+  x: number;
+  y: number;
+  emphasis: 'target' | 'muted';
+}
+
+export interface CleanupSceneItemViewModel {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  carrying: boolean;
+  stored: boolean;
+  visible: boolean;
+}
+
+export interface CleanupSceneViewModel {
+  progressLabel: string;
+  hintLabel: string;
+  player: {
+    x: number;
+    y: number;
+    carrying: boolean;
+  };
+  storages: CleanupSceneStorageViewModel[];
+  items: CleanupSceneItemViewModel[];
+}
+
+export interface CookingSceneViewModel {
+  step: CookingTaskState['step'];
+  stepLabel: string;
+  cueLabel: string;
+  statusLabel: string;
+  qualityLabel: string;
+  progressPercent: number;
+  isHeating: boolean;
+  isReady: boolean;
+  temperatureBand: 'cool' | 'warm' | 'hot' | 'danger';
+}
+
 export interface SceneViewModel {
   phase: GamePhase;
   scene: 'title' | 'idle' | 'cleanup' | 'cooking';
   headline: string;
   supportingText: string;
   focusedTask: FocusedTaskSceneViewModel | null;
+  cleanup: CleanupSceneViewModel | null;
+  cooking: CookingSceneViewModel | null;
 }
 
 export interface GameViewModelFactory {
@@ -454,6 +503,122 @@ function cookingCueLabel(cue: CookingTaskState['cue']): string {
   }
 }
 
+function cookingStatusLabel(step: CookingTaskState['step']): string {
+  switch (step) {
+    case 'select':
+      return 'クリックで食材を決める';
+    case 'mash':
+      return '押しながら円を描いてすり潰す';
+    case 'heat':
+      return '火を入れて、ちょうどよいところで離す';
+    case 'cool':
+      return '熱を逃がして食べやすくする';
+    case 'feed':
+      return '押しながらスプーンを口元へ運ぶ';
+  }
+}
+
+function cookingQualityLabel(quality: number): string {
+  if (quality >= 85) {
+    return 'なめらか';
+  }
+  if (quality >= 65) {
+    return 'まずまず';
+  }
+  if (quality >= 40) {
+    return '少しムラあり';
+  }
+  return '仕上がり注意';
+}
+
+function cookingTemperatureBand(task: CookingTaskState): CookingSceneViewModel['temperatureBand'] {
+  if (task.cue === 'danger' || task.temperature >= 95) {
+    return 'danger';
+  }
+  if (task.temperature >= 68) {
+    return 'hot';
+  }
+  if (task.temperature >= 45) {
+    return 'warm';
+  }
+  return 'cool';
+}
+
+function toCookingSceneViewModel(task: CookingTaskState): CookingSceneViewModel {
+  return {
+    step: task.step,
+    stepLabel: cookingStepLabel(task.step),
+    cueLabel: cookingCueLabel(task.cue),
+    statusLabel: cookingStatusLabel(task.step),
+    qualityLabel: cookingQualityLabel(task.quality),
+    progressPercent: Math.round(task.stepProgress * 100),
+    isHeating: task.isHeating,
+    isReady: task.isReady,
+    temperatureBand: cookingTemperatureBand(task),
+  };
+}
+
+function cleanupStorageLabel(kind: CleanupSceneStorageViewModel['kind']): string {
+  switch (kind) {
+    case 'basket':
+      return 'かご';
+    case 'box':
+      return '箱';
+    case 'kitchen':
+      return '台所';
+  }
+}
+
+function toCleanupSceneViewModel(task: CleanupTaskState): CleanupSceneViewModel {
+  const carriedItem = task.carriedItemId
+    ? task.items.find((item) => item.id === task.carriedItemId) ?? null
+    : null;
+  const player = normalizeCleanupPosition(task.playerPosition);
+
+  return {
+    progressLabel: `${task.storedItems} / ${task.totalItems} 個を収納済み`,
+    hintLabel: carriedItem
+      ? `${cleanupStorageLabel(carriedItem.targetStorage)}へ移動して E でしまう`
+      : '矢印キーで移動して Space で拾う',
+    player: {
+      x: player.x,
+      y: player.y,
+      carrying: carriedItem !== null,
+    },
+    storages: (Object.entries(CLEANUP_STORAGE_POSITIONS) as Array<
+      [CleanupSceneStorageViewModel['kind'], typeof CLEANUP_STORAGE_POSITIONS.basket]
+    >).map(([kind, position]) => {
+      const normalized = normalizeCleanupPosition(position);
+      return {
+        kind,
+        label: cleanupStorageLabel(kind),
+        x: normalized.x,
+        y: normalized.y,
+        emphasis: carriedItem?.targetStorage === kind ? 'target' : 'muted',
+      };
+    }),
+    items: task.items.map((item) => {
+      const normalized =
+        item.id === task.carriedItemId
+          ? {
+              x: player.x,
+              y: Math.max(0.08, player.y - 0.14),
+            }
+          : normalizeCleanupPosition(item.position);
+
+      return {
+        id: item.id,
+        label: item.label,
+        x: normalized.x,
+        y: normalized.y,
+        carrying: item.id === task.carriedItemId,
+        stored: item.stored,
+        visible: !item.stored || item.id === task.carriedItemId,
+      };
+    }),
+  };
+}
+
 function findFocusedHandTask(state: GameState): HandTaskState | null {
   if (!state.focusedHandTaskId) {
     return null;
@@ -527,9 +692,11 @@ export function createSceneViewModel(state: GameState): SceneViewModel {
     return {
       phase: state.phase,
       scene: 'cleanup',
-      headline: 'Cleanup Task View',
-      supportingText: 'Focused keyboard task scene',
+      headline: focusedTask.title,
+      supportingText: '矢印キーで移動し、Space と E で片付けます。',
       focusedTask: toFocusedTaskSceneViewModel(focusedTask),
+      cleanup: toCleanupSceneViewModel(focusedTask),
+      cooking: null,
     };
   }
 
@@ -537,9 +704,11 @@ export function createSceneViewModel(state: GameState): SceneViewModel {
     return {
       phase: state.phase,
       scene: 'cooking',
-      headline: 'Cooking Task View',
-      supportingText: 'Focused mouse task scene',
+      headline: focusedTask.title,
+      supportingText: '押しながら動かし、工程に合わせてベビーフードを仕上げます。',
       focusedTask: toFocusedTaskSceneViewModel(focusedTask),
+      cleanup: null,
+      cooking: toCookingSceneViewModel(focusedTask),
     };
   }
 
@@ -549,6 +718,8 @@ export function createSceneViewModel(state: GameState): SceneViewModel {
     headline: 'Title Screen Preview',
     supportingText: 'AppShell / Phaser viewport placeholder',
     focusedTask: null,
+    cleanup: null,
+    cooking: null,
   };
 }
 
