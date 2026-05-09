@@ -1,9 +1,14 @@
 import type { InputFrame } from '../input/InputFrame';
+import type { RandomPort } from '../../app/runtime/RandomPort';
 import type { GameCommand } from './GameCommand';
 import type { GameEvent, GameOverReason } from './GameEvent';
 import { createInitialGameState, type GameOutcome, type GamePhase, type GameState } from './GameState';
+import { gameScheduler, createTaskFromSpawn, type GameSchedulerService } from './GameScheduler';
 import { applyGaugeTick } from './GaugeReducer';
-import { applyScoreDelta, createGameResult } from './ScoreReducer';
+import { applyScoreDelta, createGameResult, type ScoreDelta } from './ScoreReducer';
+import { mathRandom } from '../../app/runtime/RandomPort';
+import { taskRegistry, type TaskGaugeDelta, type TaskRegistryService } from '../tasks/TaskRegistry';
+import type { TaskInstanceState } from '../tasks/TaskTypes';
 
 export interface GameUpdateResult {
   state: GameState;
@@ -13,6 +18,12 @@ export interface GameUpdateResult {
 export interface GameAggregatorService {
   tick(state: GameState, input: InputFrame, dtMs: number): GameUpdateResult;
   dispatch(state: GameState, command: GameCommand): GameUpdateResult;
+}
+
+export interface GameAggregatorDependencies {
+  random?: RandomPort;
+  scheduler?: GameSchedulerService;
+  taskRegistry?: TaskRegistryService;
 }
 
 function withPhaseEvent(events: GameEvent[], previousPhase: GamePhase, nextPhase: GamePhase): GameEvent[] {
@@ -77,10 +88,77 @@ function finishGameOver(
   return finishWithResult(state, 'gameOver', [...events, gameOverEvent]);
 }
 
-class GameAggregator implements GameAggregatorService {
-  tick(state: GameState, input: InputFrame, dtMs: number): GameUpdateResult {
-    void input;
+function resolveFocusedHandTaskId(
+  currentTaskId: string | null,
+  activeTasks: Record<string, TaskInstanceState>,
+): string | null {
+  if (currentTaskId) {
+    const currentTask = activeTasks[currentTaskId];
+    if (currentTask && currentTask.channel === 'hand') {
+      return currentTaskId;
+    }
+  }
 
+  return (
+    Object.values(activeTasks).find((task) => task.channel === 'hand')?.id ?? null
+  );
+}
+
+function appendFocusChangeEvent(
+  events: GameEvent[],
+  previousTaskId: string | null,
+  nextTaskId: string | null,
+): GameEvent[] {
+  if (previousTaskId === nextTaskId) {
+    return events;
+  }
+
+  return [...events, { type: 'focusChanged', taskId: nextTaskId }];
+}
+
+function aggregateGaugeDeltas(deltas: TaskGaugeDelta[]): TaskGaugeDelta {
+  return deltas.reduce<TaskGaugeDelta>(
+    (accumulator, delta) => ({
+      babyMood: (accumulator.babyMood ?? 0) + (delta.babyMood ?? 0),
+      parentStress: (accumulator.parentStress ?? 0) + (delta.parentStress ?? 0),
+      reason: delta.reason ?? accumulator.reason,
+    }),
+    {},
+  );
+}
+
+function aggregateScoreDeltas(deltas: ScoreDelta[]): ScoreDelta {
+  return deltas.reduce<ScoreDelta>(
+    (accumulator, delta) => ({
+      points: (accumulator.points ?? 0) + (delta.points ?? 0),
+      comboIncrement: (accumulator.comboIncrement ?? 0) + (delta.comboIncrement ?? 0),
+      resetCombo: accumulator.resetCombo || delta.resetCombo,
+      successCount: (accumulator.successCount ?? 0) + (delta.successCount ?? 0),
+      partialCount: (accumulator.partialCount ?? 0) + (delta.partialCount ?? 0),
+      comboCount: (accumulator.comboCount ?? 0) + (delta.comboCount ?? 0),
+      failureCount: (accumulator.failureCount ?? 0) + (delta.failureCount ?? 0),
+      reason: delta.reason ?? accumulator.reason,
+    }),
+    {},
+  );
+}
+
+class GameAggregator implements GameAggregatorService {
+  readonly #random: RandomPort;
+  readonly #scheduler: GameSchedulerService;
+  readonly #taskRegistry: TaskRegistryService;
+
+  constructor({
+    random = mathRandom,
+    scheduler = gameScheduler,
+    taskRegistry: registry = taskRegistry,
+  }: GameAggregatorDependencies = {}) {
+    this.#random = random;
+    this.#scheduler = scheduler;
+    this.#taskRegistry = registry;
+  }
+
+  tick(state: GameState, input: InputFrame, dtMs: number): GameUpdateResult {
     if (state.phase !== 'playing' || dtMs <= 0) {
       return {
         state,
@@ -94,10 +172,65 @@ class GameAggregator implements GameAggregatorService {
       elapsedMs: state.elapsedMs + boundedDtMs,
       remainingMs: Math.max(0, state.remainingMs - boundedDtMs),
     };
+    const activeTasks: Record<string, TaskInstanceState> = {
+      ...state.activeTasks,
+    };
+    let taskEvents: GameEvent[] = [];
+
+    for (const spawn of this.#scheduler.planSpawns(progressState, this.#random)) {
+      const task = createTaskFromSpawn(spawn, progressState.elapsedMs);
+      activeTasks[task.id] = task;
+      taskEvents.push({
+        type: 'taskSpawned',
+        taskId: task.id,
+        taskKind: task.kind,
+      });
+    }
+
+    const gaugeDeltas: TaskGaugeDelta[] = [];
+    const scoreDeltas: ScoreDelta[] = [];
+    for (const task of Object.values(activeTasks)) {
+      const update = this.#taskRegistry.updateTask(task, input, boundedDtMs);
+      if (update.task) {
+        activeTasks[task.id] = update.task;
+        if (update.task.lifecycle === 'completed') {
+          delete activeTasks[task.id];
+          taskEvents.push({
+            type: 'taskCompleted',
+            taskId: update.task.id,
+            taskKind: update.task.kind,
+          });
+        } else if (update.task.lifecycle === 'failed') {
+          delete activeTasks[task.id];
+          taskEvents.push({
+            type: 'taskFailed',
+            taskId: update.task.id,
+            taskKind: update.task.kind,
+          });
+        }
+      } else {
+        delete activeTasks[task.id];
+      }
+
+      if (update.gaugeDelta) {
+        gaugeDeltas.push(update.gaugeDelta);
+      }
+      if (update.scoreDelta) {
+        scoreDeltas.push(update.scoreDelta);
+      }
+      if (update.events) {
+        taskEvents = [...taskEvents, ...update.events];
+      }
+    }
+
+    const focusedHandTaskId = resolveFocusedHandTaskId(state.focusedHandTaskId, activeTasks);
+    taskEvents = appendFocusChangeEvent(taskEvents, state.focusedHandTaskId, focusedHandTaskId);
 
     const gaugeResult = applyGaugeTick(progressState, boundedDtMs, {
       nowMs: progressState.elapsedMs,
-      reason: 'timeProgress',
+      reason: aggregateGaugeDeltas(gaugeDeltas).reason ?? 'timeProgress',
+      babyMoodDelta: aggregateGaugeDeltas(gaugeDeltas).babyMood,
+      parentStressDelta: aggregateGaugeDeltas(gaugeDeltas).parentStress,
     });
     const scored = applyScoreDelta(
       {
@@ -105,8 +238,10 @@ class GameAggregator implements GameAggregatorService {
         gauges: gaugeResult.gauges,
         collapseTimers: gaugeResult.collapseTimers,
         warnings: gaugeResult.warnings,
+        activeTasks,
+        focusedHandTaskId,
       },
-      {},
+      aggregateScoreDeltas(scoreDeltas),
     );
 
     const nextState: GameState = {
@@ -116,8 +251,10 @@ class GameAggregator implements GameAggregatorService {
       warnings: gaugeResult.warnings,
       score: scored.score,
       metrics: scored.metrics,
+      activeTasks,
+      focusedHandTaskId,
     };
-    const events = [...gaugeResult.events, ...scored.events];
+    const events = [...taskEvents, ...gaugeResult.events, ...scored.events];
 
     if (gaugeResult.collapseReason) {
       return finishGameOver(nextState, gaugeResult.collapseReason, events);
@@ -205,4 +342,10 @@ class GameAggregator implements GameAggregatorService {
   }
 }
 
-export const gameAggregator: GameAggregatorService = new GameAggregator();
+export function createGameAggregator(
+  dependencies: GameAggregatorDependencies = {},
+): GameAggregatorService {
+  return new GameAggregator(dependencies);
+}
+
+export const gameAggregator: GameAggregatorService = createGameAggregator();

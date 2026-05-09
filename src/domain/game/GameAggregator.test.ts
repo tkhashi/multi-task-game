@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createIdleInputFrame } from '../input/InputFrame';
-import { gameAggregator } from './GameAggregator';
+import { createGameAggregator, gameAggregator } from './GameAggregator';
 import { createInitialGameState } from './GameState';
 
 describe('GameAggregator', () => {
@@ -21,6 +21,30 @@ describe('GameAggregator', () => {
       expect.arrayContaining([
         expect.objectContaining({ type: 'gaugeChanged', target: 'babyMood' }),
         expect.objectContaining({ type: 'gaugeChanged', target: 'parentStress' }),
+      ]),
+    );
+  });
+
+  it('spawns a focused hand task during the intro phase', () => {
+    const aggregator = createGameAggregator({
+      random: {
+        next: () => 0,
+      },
+    });
+    const state = createInitialGameState();
+    state.phase = 'playing';
+    state.session.microphone.inUse = true;
+    state.session.camera.inUse = true;
+
+    const result = aggregator.tick(state, createIdleInputFrame(1_000), 1_000);
+
+    expect(Object.values(result.state.activeTasks)).toHaveLength(1);
+    expect(Object.values(result.state.activeTasks)[0]?.channel).toBe('hand');
+    expect(result.state.focusedHandTaskId).toBe(Object.values(result.state.activeTasks)[0]?.id ?? null);
+    expect(result.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'taskSpawned' }),
+        expect.objectContaining({ type: 'focusChanged' }),
       ]),
     );
   });

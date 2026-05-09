@@ -47,7 +47,7 @@
   - 完了すると入力なしの tick だけでも残り時間、主要ゲージ、破綻 phase 遷移が再現できる。
   - _Requirements: 2.2, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 10.5_
   - _Boundary: GaugeReducer, ScoreReducer, GameAggregator_
-- [ ] 3.2 タスク発生制御と TaskRegistry を実装する
+- [x] 3.2 タスク発生制御と TaskRegistry を実装する
   - 同時発生数、手元 2 件、センサー 2 件、マイク 1 件、カメラ 1 件の制約を守る scheduler を作る。
   - フェーズ後半ほど複合入力が必要になる重みづけと、focused hand task の切替規則を実装する。
   - 完了すると `playing` 中の tick で発生候補が制御され、各 task kind を registry 経由で更新できる。
@@ -175,3 +175,4 @@
 - `MediaPipeFaceAdapter` は `/models/face_landmarker.task` と `/vendor/mediapipe/wasm` を same-origin で前提にし、`CameraSnapshot.detection` の timestamp で stale 判定する。
 - setup phase では `InputFrameCollector` の最新 snapshot と calibration を Runtime 側で diagnostics として保持し、UI はその guidance を表示するだけに留める。
 - gameplay tick の ownership は `GameAggregator` に集約し、`GameRuntime` は input collect と state commit だけを担当する。baseline drift、collapse timer、result 生成は Core で閉じる。
+- `GameScheduler` は time band ごとの desired hand/sensor counts と kind weights を持ち、`TaskRegistry` は未実装 task logic を no-op dispatch table で受け止める。後続 task では registry 差し替えで個別ロジックを足せる。
