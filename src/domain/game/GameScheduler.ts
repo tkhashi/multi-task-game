@@ -350,6 +350,7 @@ export function createTaskFromSpawn(plan: PlannedSpawn, startedAtMs: number): Ta
         inputType: 'camera',
         targetSlots: startedAtMs >= 240_000 ? 2 : 1,
         heldMs: 0,
+        missingMs: 0,
         hint: 'show-face',
       } satisfies FaceAlignTaskState;
   }

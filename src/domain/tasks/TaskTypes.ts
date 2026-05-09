@@ -85,6 +85,7 @@ export interface FaceAlignTaskState extends TaskBaseState {
   inputType: 'camera';
   targetSlots: number;
   heldMs: number;
+  missingMs: number;
   hint: FaceAlignHint;
 }
 

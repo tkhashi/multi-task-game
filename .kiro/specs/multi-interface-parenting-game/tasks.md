@@ -59,7 +59,7 @@
   - 完了すると microphone snapshot だけで両タスクの進行、成功、失敗、機嫌変動を検証できる。
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
   - _Boundary: VoiceRhythmTaskLogic, ShhTaskLogic_
-- [ ] 3.4 (P) 顔ポジション合わせのタスクロジックを実装する
+- [x] 3.4 (P) 顔ポジション合わせのタスクロジックを実装する
   - 位置ずれ、上下ずれ、距離ずれのヒント生成と、必要維持時間の成功判定を実装する。
   - 顔未検出継続時の心労ペナルティと、後半の複数目標枠対応を支える状態更新を実装する。
   - 完了すると camera snapshot だけでヒント、保持時間、成功と失敗を検証できる。
@@ -177,3 +177,4 @@
 - gameplay tick の ownership は `GameAggregator` に集約し、`GameRuntime` は input collect と state commit だけを担当する。baseline drift、collapse timer、result 生成は Core で閉じる。
 - `GameScheduler` は time band ごとの desired hand/sensor counts と kind weights を持ち、`TaskRegistry` は未実装 task logic を no-op dispatch table で受け止める。後続 task では registry 差し替えで個別ロジックを足せる。
 - `VoiceRhythmTaskLogic` は note cursor を `judgedCount` で管理し、`ShhTaskLogic` は `silentMs` を持って無音失敗を判定する。どちらも `TaskRegistry` の既定ロジックとして接続済み。
+- `FacePositionTaskLogic` は `missingMs` と `heldMs` を分けて持ち、no-face penalty と aligned hold 成功を camera snapshot だけで判定する。hint は target box 比較から純粋関数で返す。
