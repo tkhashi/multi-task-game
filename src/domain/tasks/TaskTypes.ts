@@ -10,6 +10,23 @@ export type TaskChannel = 'hand' | 'microphone' | 'camera';
 export type TaskInputType = 'keyboard' | 'mouse' | 'microphone' | 'camera';
 export type TaskUrgency = 'stable' | 'attention' | 'urgent' | 'critical';
 export type TaskLifecycle = 'active' | 'completed' | 'failed';
+export type CleanupStorageKind = 'basket' | 'box' | 'kitchen';
+
+export interface FieldPosition {
+  x: number;
+  y: number;
+}
+
+export interface CleanupFieldItem {
+  id: string;
+  label: string;
+  targetStorage: CleanupStorageKind;
+  pickupReward: number;
+  storeReward: number;
+  position: FieldPosition;
+  picked: boolean;
+  stored: boolean;
+}
 
 export interface TaskBaseState {
   id: string;
@@ -32,6 +49,9 @@ export interface CleanupTaskState extends TaskBaseState {
   totalItems: number;
   storedItems: number;
   remainingItems: number;
+  playerPosition: FieldPosition;
+  carriedItemId: string | null;
+  items: CleanupFieldItem[];
 }
 
 export type CookingStep = 'select' | 'mash' | 'heat' | 'cool' | 'feed';

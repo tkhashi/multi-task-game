@@ -65,7 +65,7 @@
   - 完了すると camera snapshot だけでヒント、保持時間、成功と失敗を検証できる。
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
   - _Boundary: FacePositionTaskLogic_
-- [ ] 3.5 (P) 片付けタスクのルールを実装する
+- [x] 3.5 (P) 片付けタスクのルールを実装する
   - フィールド内移動、拾う、収納する、部分介入、放置時の心労圧力を実装する。
   - 正しい収納先での完了、保持状態、連続収納ボーナスに必要な task state 更新を実装する。
   - 完了すると keyboard 入力とフィールド状態だけで片付け task の進捗と心労変動を検証できる。
@@ -178,3 +178,4 @@
 - `GameScheduler` は time band ごとの desired hand/sensor counts と kind weights を持ち、`TaskRegistry` は未実装 task logic を no-op dispatch table で受け止める。後続 task では registry 差し替えで個別ロジックを足せる。
 - `VoiceRhythmTaskLogic` は note cursor を `judgedCount` で管理し、`ShhTaskLogic` は `silentMs` を持って無音失敗を判定する。どちらも `TaskRegistry` の既定ロジックとして接続済み。
 - `FacePositionTaskLogic` は `missingMs` と `heldMs` を分けて持ち、no-face penalty と aligned hold 成功を camera snapshot だけで判定する。hint は target box 比較から純粋関数で返す。
+- `CleanupTaskLogic` は player position、carried item、item field state を task 内に持ち、pickup/store/idle pressure を keyboard snapshot だけで更新する。scene 側はこの domain state を描画するだけでよい。

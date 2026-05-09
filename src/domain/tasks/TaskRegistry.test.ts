@@ -37,6 +37,9 @@ describe('TaskRegistry', () => {
       totalItems: 3,
       storedItems: 0,
       remainingItems: 3,
+      playerPosition: { x: 5, y: 3 },
+      carriedItemId: null,
+      items: [],
     };
     const cookingTask: CookingTaskState = {
       id: 'cooking-1',

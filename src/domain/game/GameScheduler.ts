@@ -308,6 +308,40 @@ export function createTaskFromSpawn(plan: PlannedSpawn, startedAtMs: number): Ta
         totalItems: 3,
         storedItems: 0,
         remainingItems: 3,
+        playerPosition: { x: 5, y: 3 },
+        carriedItemId: null,
+        items: [
+          {
+            id: `${plan.id}-sock`,
+            label: '靴下',
+            targetStorage: 'basket',
+            pickupReward: 2,
+            storeReward: 4,
+            position: { x: 2.1, y: 2.2 },
+            picked: false,
+            stored: false,
+          },
+          {
+            id: `${plan.id}-toy`,
+            label: 'おもちゃ',
+            targetStorage: 'box',
+            pickupReward: 2,
+            storeReward: 5,
+            position: { x: 6.4, y: 2.8 },
+            picked: false,
+            stored: false,
+          },
+          {
+            id: `${plan.id}-bottle`,
+            label: '哺乳瓶',
+            targetStorage: 'kitchen',
+            pickupReward: 2,
+            storeReward: 7,
+            position: { x: 7.8, y: 4.7 },
+            picked: false,
+            stored: false,
+          },
+        ],
       } satisfies CleanupTaskState;
     case 'cooking':
       return {
