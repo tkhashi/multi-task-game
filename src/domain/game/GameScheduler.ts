@@ -325,8 +325,11 @@ export function createTaskFromSpawn(plan: PlannedSpawn, startedAtMs: number): Ta
         channel: 'microphone',
         inputType: 'microphone',
         noteCount: 4,
+        judgedCount: 0,
         hitCount: 0,
+        missCount: 0,
         tooLoudCount: 0,
+        lastJudgement: 'idle',
       } satisfies VoiceRhythmTaskState;
     case 'shh':
       return {
@@ -336,6 +339,7 @@ export function createTaskFromSpawn(plan: PlannedSpawn, startedAtMs: number): Ta
         inputType: 'microphone',
         targetHoldMs: 3_000,
         heldMs: 0,
+        silentMs: 0,
         stability: 'silent',
       } satisfies ShhTaskState;
     case 'faceAlign':

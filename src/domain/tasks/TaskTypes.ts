@@ -50,8 +50,11 @@ export interface VoiceRhythmTaskState extends TaskBaseState {
   channel: 'microphone';
   inputType: 'microphone';
   noteCount: number;
+  judgedCount: number;
   hitCount: number;
+  missCount: number;
   tooLoudCount: number;
+  lastJudgement: 'idle' | 'perfect' | 'good' | 'miss' | 'tooLoud';
 }
 
 export type ShhStability = 'stable' | 'shaky' | 'silent' | 'loud';
@@ -62,6 +65,7 @@ export interface ShhTaskState extends TaskBaseState {
   inputType: 'microphone';
   targetHoldMs: number;
   heldMs: number;
+  silentMs: number;
   stability: ShhStability;
 }
 

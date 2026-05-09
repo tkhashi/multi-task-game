@@ -53,7 +53,7 @@
   - 完了すると `playing` 中の tick で発生候補が制御され、各 task kind を registry 経由で更新できる。
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
   - _Boundary: GameScheduler, TaskRegistry_
-- [ ] 3.3 (P) 呼びかけ連打としーっのタスクロジックを実装する
+- [x] 3.3 (P) 呼びかけ連打としーっのタスクロジックを実装する
   - ノーツ判定、Perfect と Good、Miss、Too Loud、成功率に応じた効果を実装する。
   - 声量帯維持、無音時停止、無音継続時失敗、大声ペナルティを実装する。
   - 完了すると microphone snapshot だけで両タスクの進行、成功、失敗、機嫌変動を検証できる。
@@ -176,3 +176,4 @@
 - setup phase では `InputFrameCollector` の最新 snapshot と calibration を Runtime 側で diagnostics として保持し、UI はその guidance を表示するだけに留める。
 - gameplay tick の ownership は `GameAggregator` に集約し、`GameRuntime` は input collect と state commit だけを担当する。baseline drift、collapse timer、result 生成は Core で閉じる。
 - `GameScheduler` は time band ごとの desired hand/sensor counts と kind weights を持ち、`TaskRegistry` は未実装 task logic を no-op dispatch table で受け止める。後続 task では registry 差し替えで個別ロジックを足せる。
+- `VoiceRhythmTaskLogic` は note cursor を `judgedCount` で管理し、`ShhTaskLogic` は `silentMs` を持って無音失敗を判定する。どちらも `TaskRegistry` の既定ロジックとして接続済み。

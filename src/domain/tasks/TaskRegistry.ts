@@ -10,6 +10,8 @@ import type {
   TaskKind,
   VoiceRhythmTaskState,
 } from './TaskTypes';
+import { updateShhTask } from './voice/ShhTaskLogic';
+import { updateVoiceRhythmTask } from './voice/VoiceRhythmTaskLogic';
 
 export interface TaskGaugeDelta {
   babyMood?: number;
@@ -57,8 +59,8 @@ function defaultTaskLogics(): TaskLogicMap {
   return {
     cleanup: createNoopLogic<CleanupTaskState>(),
     cooking: createNoopLogic<CookingTaskState>(),
-    voiceRhythm: createNoopLogic<VoiceRhythmTaskState>(),
-    shh: createNoopLogic<ShhTaskState>(),
+    voiceRhythm: { updateTask: updateVoiceRhythmTask },
+    shh: { updateTask: updateShhTask },
     faceAlign: createNoopLogic<FaceAlignTaskState>(),
   };
 }
