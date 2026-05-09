@@ -1,11 +1,15 @@
 import type {
+  AudioCalibration,
   DeviceChannelState,
+  FaceCalibration,
   GamePhase,
   GameResult,
   GameState,
   WarningSeverity,
 } from '../../domain/game/GameState';
 import { createInitialGameState } from '../../domain/game/GameState';
+import type { CameraHint, CameraSnapshot } from '../../domain/input/CameraSnapshot';
+import type { MicrophoneSnapshot } from '../../domain/input/MicrophoneSnapshot';
 import type {
   CookingTaskState,
   HandTaskState,
@@ -104,8 +108,19 @@ export interface SceneViewModel {
 }
 
 export interface GameViewModelFactory {
-  createGameViewModel(state: GameState): GameViewModel;
+  createGameViewModel(state: GameState, setupGuidance?: SetupGuidanceViewModelInput): GameViewModel;
   createSceneViewModel(state: GameState): SceneViewModel;
+}
+
+export interface SetupGuidanceViewModelInput {
+  microphone: {
+    snapshot: MicrophoneSnapshot;
+    calibration: AudioCalibration | null;
+  } | null;
+  camera: {
+    snapshot: CameraSnapshot;
+    calibration: FaceCalibration | null;
+  } | null;
 }
 
 function formatRemainingTime(remainingMs: number): string {
@@ -160,7 +175,81 @@ function inputTypeLabel(task: TaskInstanceState): string {
   }
 }
 
-function sensorStatus(device: DeviceChannelState): SensorStatusViewModel {
+function isSetupPhase(phase: GamePhase): boolean {
+  return phase === 'deviceCheck' || phase === 'ready';
+}
+
+function cameraHintMessage(hint: CameraHint): string {
+  switch (hint) {
+    case 'show-face':
+      return '顔全体をカメラの中央に映してください。';
+    case 'move-left':
+      return 'もう少し左へ移動してください。';
+    case 'move-right':
+      return 'もう少し右へ移動してください。';
+    case 'move-up':
+      return 'もう少し上へ移動してください。';
+    case 'move-down':
+      return 'もう少し下へ移動してください。';
+    case 'move-forward':
+      return 'カメラに少し近づいてください。';
+    case 'move-back':
+      return 'カメラから少し離れてください。';
+    case 'hold':
+      return 'その位置で顔をキープしてください。';
+  }
+}
+
+function microphoneSetupText(
+  device: DeviceChannelState,
+  phase: GamePhase,
+  guidance: SetupGuidanceViewModelInput['microphone'],
+): string {
+  if (!isSetupPhase(phase) || !guidance || !guidance.calibration) {
+    return device.ready ? 'プレイ中に状態を継続表示します。' : 'セットアップで利用可否を判定します。';
+  }
+
+  const { snapshot, calibration } = guidance;
+  const environmentHint =
+    calibration.noiseFloor >= 0.06
+      ? '環境音が大きめです。テレビや換気音を少し下げると安定します。'
+      : '環境音は静かな場所です。このまま短く声を出して反応を確認できます。';
+  const voiceHint = snapshot.isTooLoud
+    ? '声が大きすぎます。少し声量を下げてください。'
+    : snapshot.isSpeaking
+      ? snapshot.stability >= 0.65
+        ? 'その声量で安定しています。'
+        : '声は拾えています。短く一定の声を意識してください。'
+      : 'まだ声の反応が弱めです。短く声を出して反応を試してください。';
+
+  return `${environmentHint} ${voiceHint}`;
+}
+
+function cameraSetupText(
+  device: DeviceChannelState,
+  phase: GamePhase,
+  guidance: SetupGuidanceViewModelInput['camera'],
+): string {
+  if (!isSetupPhase(phase) || !guidance) {
+    return device.ready ? 'プレイ中に状態を継続表示します。' : 'セットアップで利用可否を判定します。';
+  }
+
+  const { snapshot } = guidance;
+  const freshnessHint = snapshot.detection.stale
+    ? '顔を見失ったため、もう一度カメラの正面に戻ってください。'
+    : snapshot.faceDetected
+      ? '顔の位置を確認できています。'
+      : '顔を映す準備をしています。';
+
+  return `${freshnessHint} ${cameraHintMessage(snapshot.hint)}`;
+}
+
+function sensorStatus(
+  device: DeviceChannelState,
+  phase: GamePhase,
+  guidance: SetupGuidanceViewModelInput[keyof SetupGuidanceViewModelInput],
+  sensorType: 'microphone' | 'camera',
+): SensorStatusViewModel {
   if (device.permission === 'denied') {
     return {
       label: '拒否されています',
@@ -193,7 +282,10 @@ function sensorStatus(device: DeviceChannelState): SensorStatusViewModel {
       label: device.inUse ? '使用中' : '利用可能',
       active: device.inUse,
       tone: 'ready',
-      helperText: 'プレイ中に状態を継続表示します。',
+      helperText:
+        sensorType === 'microphone'
+          ? microphoneSetupText(device, phase, guidance as SetupGuidanceViewModelInput['microphone'])
+          : cameraSetupText(device, phase, guidance as SetupGuidanceViewModelInput['camera']),
     };
   }
 
@@ -202,7 +294,10 @@ function sensorStatus(device: DeviceChannelState): SensorStatusViewModel {
       label: '確認中',
       active: false,
       tone: 'muted',
-      helperText: 'セットアップで利用可否を判定します。',
+      helperText:
+        sensorType === 'microphone'
+          ? microphoneSetupText(device, phase, guidance as SetupGuidanceViewModelInput['microphone'])
+          : cameraSetupText(device, phase, guidance as SetupGuidanceViewModelInput['camera']),
     };
   }
 
@@ -372,7 +467,13 @@ function findFocusedHandTask(state: GameState): HandTaskState | null {
   return task;
 }
 
-export function createGameViewModel(state: GameState): GameViewModel {
+export function createGameViewModel(
+  state: GameState,
+  setupGuidance: SetupGuidanceViewModelInput = {
+    microphone: null,
+    camera: null,
+  },
+): GameViewModel {
   return {
     phase: state.phase,
     screen: screenForPhase(state.phase),
@@ -401,8 +502,13 @@ export function createGameViewModel(state: GameState): GameViewModel {
         active: Object.values(state.activeTasks).map(toTaskSummary),
       },
       sensors: {
-        microphone: sensorStatus(state.session.microphone),
-        camera: sensorStatus(state.session.camera),
+        microphone: sensorStatus(
+          state.session.microphone,
+          state.phase,
+          setupGuidance.microphone,
+          'microphone',
+        ),
+        camera: sensorStatus(state.session.camera, state.phase, setupGuidance.camera, 'camera'),
       },
       warnings: state.warnings.map((warning) => ({
         id: warning.id,

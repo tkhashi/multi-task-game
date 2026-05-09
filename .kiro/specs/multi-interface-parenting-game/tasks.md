@@ -33,7 +33,7 @@
   - 完了するとデバイスチェックでカメラ準備完了か失敗理由を判定でき、playing 中に顔位置 snapshot を継続取得できる。
   - _Requirements: 1.1, 1.3, 1.5, 9.2, 9.3, 9.4, 11.2, 11.3, 11.5, 11.7_
   - _Boundary: MediaPipeFaceAdapter_
-- [ ] 2.3 InputFrameCollector と開始前デバイスチェック導線を統合する
+- [x] 2.3 InputFrameCollector と開始前デバイスチェック導線を統合する
   - keyboard、mouse、microphone、camera の snapshot を 1 フレームに束ねる collector を実装する。
   - 権限拒否、デバイス失敗、再試行、ready への遷移条件を Runtime と接続する。
   - 完了すると開始前画面でマイクとカメラの可否が表示され、両方成功した場合のみ ready へ進める。
@@ -173,3 +173,4 @@
 - `GameRuntime.tick()` は 3.1 の `GameAggregator` 導入まで phase-safe な no-op に保ち、時間経過や終了判定の ownership を Runtime に持たせない。
 - `WebAudioAnalyzer` は `getUserMedia` と `AudioContext` を DI 可能にしてあるため、2.3 以降の統合では browser 実機依存を増やさず contract test を拡張できる。
 - `MediaPipeFaceAdapter` は `/models/face_landmarker.task` と `/vendor/mediapipe/wasm` を same-origin で前提にし、`CameraSnapshot.detection` の timestamp で stale 判定する。
+- setup phase では `InputFrameCollector` の最新 snapshot と calibration を Runtime 側で diagnostics として保持し、UI はその guidance を表示するだけに留める。

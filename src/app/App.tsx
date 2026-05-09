@@ -39,19 +39,9 @@ function actionsForState(state: GameState): ScreenAction[] {
     case 'title':
       return [{ label: '開始前確認へ', command: { type: 'openPermissionCheck' } }];
     case 'permissionCheck':
-      return [
-        {
-          label: 'マイクを許可',
-          command: { type: 'setDevicePermission', device: 'microphone', permission: 'granted' },
-        },
-        {
-          label: 'カメラを許可',
-          command: { type: 'setDevicePermission', device: 'camera', permission: 'granted' },
-        },
-        { label: 'デバイス確認へ', command: { type: 'beginDeviceCheck' } },
-      ];
+      return [{ label: 'デバイス確認を始める', command: { type: 'beginDeviceCheck' } }];
     case 'deviceCheck':
-      return [{ label: 'チェック結果を反映', command: { type: 'completeDeviceCheck' } }];
+      return [{ label: 'もう一度確認する', command: { type: 'beginDeviceCheck' } }];
     case 'ready':
       return [{ label: '本編を開始', command: { type: 'startSession' } }];
     case 'playing':

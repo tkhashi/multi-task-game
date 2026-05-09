@@ -31,7 +31,9 @@ export function TitleScreen({ viewModel, sceneViewModel, actions, onAction }: Ti
         </div>
         <div className="title-screen__meta" aria-label="センサー状態">
           <span>マイク: {hud.sensors.microphone.label}</span>
+          <span>{hud.sensors.microphone.helperText}</span>
           <span>カメラ: {hud.sensors.camera.label}</span>
+          <span>{hud.sensors.camera.helperText}</span>
           <span>残り時間: {hud.remainingTimeLabel}</span>
         </div>
         <div className="title-screen__actions" aria-label="画面操作">
