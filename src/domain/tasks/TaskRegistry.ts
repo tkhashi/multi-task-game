@@ -11,6 +11,7 @@ import type {
   VoiceRhythmTaskState,
 } from './TaskTypes';
 import { updateCleanupTask } from './cleanup/CleanupTaskLogic';
+import { updateCookingTask } from './cooking/CookingTaskLogic';
 import { updateShhTask } from './voice/ShhTaskLogic';
 import { updateVoiceRhythmTask } from './voice/VoiceRhythmTaskLogic';
 import { updateFacePositionTask } from './camera/FacePositionTaskLogic';
@@ -60,7 +61,7 @@ function createNoopLogic<T extends TaskInstanceState>(): TaskLogic<T> {
 function defaultTaskLogics(): TaskLogicMap {
   return {
     cleanup: { updateTask: updateCleanupTask },
-    cooking: createNoopLogic<CookingTaskState>(),
+    cooking: { updateTask: updateCookingTask },
     voiceRhythm: { updateTask: updateVoiceRhythmTask },
     shh: { updateTask: updateShhTask },
     faceAlign: { updateTask: updateFacePositionTask },

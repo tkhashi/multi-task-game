@@ -6,12 +6,17 @@ import { createInitialGameState } from './GameState';
 
 describe('GameAggregator', () => {
   it('advances the session timer and baseline gauges during playing ticks', () => {
+    const aggregator = createGameAggregator({
+      scheduler: {
+        planSpawns: () => [],
+      },
+    });
     const state = createInitialGameState();
     state.phase = 'playing';
     state.session.microphone.inUse = true;
     state.session.camera.inUse = true;
 
-    const result = gameAggregator.tick(state, createIdleInputFrame(1_000), 1_000);
+    const result = aggregator.tick(state, createIdleInputFrame(1_000), 1_000);
 
     expect(result.state.elapsedMs).toBe(1_000);
     expect(result.state.remainingMs).toBe(299_000);

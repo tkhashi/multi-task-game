@@ -351,6 +351,11 @@ export function createTaskFromSpawn(plan: PlannedSpawn, startedAtMs: number): Ta
         inputType: 'mouse',
         step: 'select',
         cue: 'safe',
+        stepProgress: 0,
+        temperature: 24,
+        quality: 100,
+        isHeating: false,
+        isReady: false,
       } satisfies CookingTaskState;
     case 'voiceRhythm':
       return {

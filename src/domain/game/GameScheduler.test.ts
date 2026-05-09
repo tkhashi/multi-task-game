@@ -56,6 +56,11 @@ describe('GameScheduler', () => {
       updatedAtMs: 100_000,
       step: 'heat',
       cue: 'soon',
+      stepProgress: 0.4,
+      temperature: 74,
+      quality: 92,
+      isHeating: true,
+      isReady: false,
     };
 
     const plans = scheduler.planSpawns(state, createRandom(0.2, 0.4, 0.6, 0.8));

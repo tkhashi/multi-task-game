@@ -55,6 +55,11 @@ describe('TaskRegistry', () => {
       updatedAtMs: 0,
       step: 'select',
       cue: 'safe',
+      stepProgress: 0,
+      temperature: 24,
+      quality: 100,
+      isHeating: false,
+      isReady: false,
     };
 
     const cleanupResult = registry.updateTask(cleanupTask, createIdleInputFrame(1_000), 16);
@@ -82,6 +87,11 @@ describe('TaskRegistry', () => {
       updatedAtMs: 100,
       step: 'mash',
       cue: 'soon',
+      stepProgress: 0.2,
+      temperature: 24,
+      quality: 100,
+      isHeating: false,
+      isReady: false,
     };
 
     const result = registry.updateTask(task, createIdleInputFrame(1_200), 100);

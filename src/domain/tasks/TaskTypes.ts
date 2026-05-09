@@ -63,6 +63,11 @@ export interface CookingTaskState extends TaskBaseState {
   inputType: 'mouse';
   step: CookingStep;
   cue: CookingCue;
+  stepProgress: number;
+  temperature: number;
+  quality: number;
+  isHeating: boolean;
+  isReady: boolean;
 }
 
 export interface VoiceRhythmTaskState extends TaskBaseState {

@@ -71,7 +71,7 @@
   - 完了すると keyboard 入力とフィールド状態だけで片付け task の進捗と心労変動を検証できる。
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
   - _Boundary: CleanupTaskLogic_
-- [ ] 3.6 (P) ベビーフード作りタスクのルールを実装する
+- [x] 3.6 (P) ベビーフード作りタスクのルールを実装する
   - 食材選択、すり潰し、加熱、冷ます、食べさせるの工程進行と途中再開を実装する。
   - 適温成功、焦げ、冷めすぎ、品質差分、内部数値を隠した状態ラベルを実装する。
   - 完了すると mouse 入力と工程状態だけで料理 task の進捗、失敗、完了効果を検証できる。
@@ -179,3 +179,4 @@
 - `VoiceRhythmTaskLogic` は note cursor を `judgedCount` で管理し、`ShhTaskLogic` は `silentMs` を持って無音失敗を判定する。どちらも `TaskRegistry` の既定ロジックとして接続済み。
 - `FacePositionTaskLogic` は `missingMs` と `heldMs` を分けて持ち、no-face penalty と aligned hold 成功を camera snapshot だけで判定する。hint は target box 比較から純粋関数で返す。
 - `CleanupTaskLogic` は player position、carried item、item field state を task 内に持ち、pickup/store/idle pressure を keyboard snapshot だけで更新する。scene 側はこの domain state を描画するだけでよい。
+- `CookingTaskLogic` は `stepProgress`、`temperature`、`quality`、`isHeating`、`isReady` を持ち、`select -> mash -> heat -> cool -> feed` を mouse snapshot だけで遷移させる。焦げは task failure と gauge penalty で扱う。
