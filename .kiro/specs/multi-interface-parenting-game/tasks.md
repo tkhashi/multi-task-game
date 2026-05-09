@@ -41,7 +41,7 @@
   - _Boundary: InputFrameCollector, GameRuntime, SetupFlow_
 
 - [ ] 3. Core: ゲームルールと各タスクロジックを実装する
-- [ ] 3.1 ゲージ、タイマー、破綻条件、基本スコア更新を実装する
+- [x] 3.1 ゲージ、タイマー、破綻条件、基本スコア更新を実装する
   - 5 分タイマー、赤ちゃんの機嫌、親の心労、危険域、破綻継続時間、結果ランク計算の基礎を実装する。
   - タイムアップ、単独破綻、同時危険破綻の event を返せるようにする。
   - 完了すると入力なしの tick だけでも残り時間、主要ゲージ、破綻 phase 遷移が再現できる。
@@ -174,3 +174,4 @@
 - `WebAudioAnalyzer` は `getUserMedia` と `AudioContext` を DI 可能にしてあるため、2.3 以降の統合では browser 実機依存を増やさず contract test を拡張できる。
 - `MediaPipeFaceAdapter` は `/models/face_landmarker.task` と `/vendor/mediapipe/wasm` を same-origin で前提にし、`CameraSnapshot.detection` の timestamp で stale 判定する。
 - setup phase では `InputFrameCollector` の最新 snapshot と calibration を Runtime 側で diagnostics として保持し、UI はその guidance を表示するだけに留める。
+- gameplay tick の ownership は `GameAggregator` に集約し、`GameRuntime` は input collect と state commit だけを担当する。baseline drift、collapse timer、result 生成は Core で閉じる。

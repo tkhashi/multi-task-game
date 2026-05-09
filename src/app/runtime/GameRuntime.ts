@@ -1,6 +1,8 @@
 import type { GameCommand } from '../../domain/game/GameCommand';
 import type { GameEvent } from '../../domain/game/GameEvent';
+import { gameAggregator } from '../../domain/game/GameAggregator';
 import { createInitialGameState, type DeviceChannelState, type GamePhase, type GameState } from '../../domain/game/GameState';
+import { createIdleInputFrame } from '../../domain/input/InputFrame';
 import type { AudioAnalyzerPort, InputDeviceError as AudioInputDeviceError } from '../../adapters/audio/AudioAnalyzerPort';
 import type { FaceDetectorPort, FaceDeviceError } from '../../adapters/camera/FaceDetectorPort';
 import type { InputFrameCollectorPort } from '../../adapters/input/InputFrameCollector';
@@ -333,99 +335,11 @@ export class GameRuntime implements GameRuntimeService {
         }
         break;
       case 'startSession':
-        if (
-          currentState.phase === 'ready' &&
-          currentState.session.microphone.ready &&
-          currentState.session.camera.ready
-        ) {
-          nextState = {
-            ...currentState,
-            phase: 'playing',
-            session: {
-              ...currentState.session,
-              microphone: {
-                ...currentState.session.microphone,
-                inUse: true,
-              },
-              camera: {
-                ...currentState.session.camera,
-                inUse: true,
-              },
-            },
-          };
-          events = [{ type: 'phaseChanged', phase: 'playing' }];
-        }
-        break;
       case 'pauseSession':
-        if (currentState.phase === 'playing') {
-          nextState = {
-            ...currentState,
-            phase: 'paused',
-          };
-          events = [{ type: 'phaseChanged', phase: 'paused' }];
-        }
-        break;
       case 'resumeSession':
-        if (currentState.phase === 'paused') {
-          nextState = {
-            ...currentState,
-            phase: 'playing',
-          };
-          events = [{ type: 'phaseChanged', phase: 'playing' }];
-        }
-        break;
       case 'focusHandTask':
-        if (currentState.focusedHandTaskId !== command.taskId) {
-          nextState = {
-            ...currentState,
-            focusedHandTaskId: command.taskId,
-          };
-          events = [{ type: 'focusChanged', taskId: command.taskId }];
-        }
-        break;
       case 'finishSession':
-        if (command.outcome === 'gameOver') {
-          nextState = {
-            ...currentState,
-            phase: 'gameOver',
-            result: null,
-            session: {
-              ...currentState.session,
-              microphone: {
-                ...currentState.session.microphone,
-                inUse: false,
-              },
-              camera: {
-                ...currentState.session.camera,
-                inUse: false,
-              },
-            },
-          };
-          events = [
-            { type: 'phaseChanged', phase: 'gameOver' },
-            { type: 'sessionFinished', outcome: 'gameOver' },
-          ];
-        } else {
-          nextState = {
-            ...currentState,
-            phase: 'result',
-            session: {
-              ...currentState.session,
-              microphone: {
-                ...currentState.session.microphone,
-                inUse: false,
-              },
-              camera: {
-                ...currentState.session.camera,
-                inUse: false,
-              },
-            },
-          };
-          events = [
-            { type: 'phaseChanged', phase: 'result' },
-            { type: 'sessionFinished', outcome: command.outcome },
-          ];
-        }
+        ({ state: nextState, events } = gameAggregator.dispatch(currentState, command));
         break;
       case 'returnToTitle':
       case 'retrySession':
@@ -434,8 +348,7 @@ export class GameRuntime implements GameRuntimeService {
           microphone: null,
           camera: null,
         };
-        nextState = createInitialGameState();
-        events = [{ type: 'phaseChanged', phase: 'title' }];
+        ({ state: nextState, events } = gameAggregator.dispatch(currentState, command));
         break;
     }
 
@@ -443,7 +356,6 @@ export class GameRuntime implements GameRuntimeService {
   }
 
   tick(dtMs: number): GameUpdateResult {
-    void dtMs;
     const currentState = this.#store.getState();
 
     if (!runtimeFeatureFlags.phaseRoutingPrototype) {
@@ -454,7 +366,15 @@ export class GameRuntime implements GameRuntimeService {
       return this.#buildResult(currentState, [], false);
     }
 
-    return this.#buildResult(currentState, [], false);
+    if (currentState.phase === 'paused') {
+      return this.#buildResult(currentState, [], false);
+    }
+
+    const sampledAtMs = this.#clock.nowMs();
+    const input = this.#inputFrameCollector?.collect(sampledAtMs) ?? createIdleInputFrame(sampledAtMs);
+    const update = gameAggregator.tick(currentState, input, dtMs);
+
+    return this.#commit(update.state, update.events);
   }
 
   getState(): GameState {

@@ -245,7 +245,7 @@ describe('GameRuntime', () => {
     expect(runtime.getViewModel().hud.sensors.camera.label).toBe('利用可能');
   });
 
-  it('keeps tick as phase-safe no-op plumbing and supports command-driven phase changes', async () => {
+  it('advances gameplay through the aggregator while preserving command-driven phase changes', async () => {
     const runtime = createGameRuntime({
       audioAnalyzer: new FakeAudioAnalyzer([
         {
@@ -284,16 +284,21 @@ describe('GameRuntime', () => {
     const finishedUpdate = runtime.dispatch({ type: 'finishSession', outcome: 'timeout' });
     const retryUpdate = runtime.dispatch({ type: 'retrySession' });
 
-    expect(playingTickUpdate.changed).toBe(false);
-    expect(playingTickUpdate.events).toEqual([]);
+    expect(playingTickUpdate.changed).toBe(true);
+    expect(playingTickUpdate.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'gaugeChanged', target: 'babyMood' }),
+        expect.objectContaining({ type: 'gaugeChanged', target: 'parentStress' }),
+      ]),
+    );
     expect(playingTickUpdate.state.phase).toBe('playing');
-    expect(playingTickUpdate.state.elapsedMs).toBe(0);
-    expect(playingTickUpdate.state.remainingMs).toBe(300000);
+    expect(playingTickUpdate.state.elapsedMs).toBe(1000);
+    expect(playingTickUpdate.state.remainingMs).toBe(299000);
     expect(pausedUpdate.state.phase).toBe('paused');
     expect(pausedTickUpdate.changed).toBe(false);
     expect(pausedTickUpdate.state.phase).toBe('paused');
-    expect(pausedTickUpdate.state.elapsedMs).toBe(0);
-    expect(pausedTickUpdate.state.remainingMs).toBe(300000);
+    expect(pausedTickUpdate.state.elapsedMs).toBe(1000);
+    expect(pausedTickUpdate.state.remainingMs).toBe(299000);
     expect(resumedUpdate.state.phase).toBe('playing');
     expect(finishedUpdate.state.phase).toBe('result');
     expect(retryUpdate.state.phase).toBe('title');
