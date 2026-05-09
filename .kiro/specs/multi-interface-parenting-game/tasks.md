@@ -79,7 +79,7 @@
   - _Boundary: CookingTaskLogic_
 
 - [ ] 4. Core: 描画と画面遷移のプレゼンテーションを実装する
-- [ ] 4.1 Phaser game host と focused hand task の scene 切替を実装する
+- [x] 4.1 Phaser game host と focused hand task の scene 切替を実装する
   - Runtime から受け取る scene view model に応じて、中央ゲームビューを差し替えられる host を作る。
   - cleanup と cooking を同じゲームコンテナ内で切り替え、GameState を Scene が保持しない形にする。
   - 完了すると focused hand task の変更に応じて、Phaser 側の表示が切り替わる。
@@ -180,3 +180,4 @@
 - `FacePositionTaskLogic` は `missingMs` と `heldMs` を分けて持ち、no-face penalty と aligned hold 成功を camera snapshot だけで判定する。hint は target box 比較から純粋関数で返す。
 - `CleanupTaskLogic` は player position、carried item、item field state を task 内に持ち、pickup/store/idle pressure を keyboard snapshot だけで更新する。scene 側はこの domain state を描画するだけでよい。
 - `CookingTaskLogic` は `stepProgress`、`temperature`、`quality`、`isHeating`、`isReady` を持ち、`select -> mash -> heat -> cool -> feed` を mouse snapshot だけで遷移させる。焦げは task failure と gauge penalty で扱う。
+- `PhaserGameHost` は mount 時に 1 度だけ game を起動し、`MainScene` へ `SceneViewModel` を push して cleanup/cooking/title/idle の presentation を切り替える。scene 側は domain state を保持せず、view model 映像化だけを行う。
