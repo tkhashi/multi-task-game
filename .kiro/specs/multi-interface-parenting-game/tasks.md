@@ -1,19 +1,19 @@
 # Implementation Plan
 
 - [ ] 1. Foundation: 開発基盤と共通ランタイム契約を整える
-- [ ] 1.1 Vite、React、TypeScript、Phaser、Vitest、Playwright を使う開発基盤を初期化する
+- [x] 1.1 Vite、React、TypeScript、Phaser、Vitest、Playwright を使う開発基盤を初期化する
   - 開発サーバー、ビルド、単体テスト、E2E テストの基本コマンドを実行できる状態にする。
   - secure context 前提でローカル開発できるよう、localhost 起動と公開アセット参照の前提を整える。
   - 完了すると開発サーバー起動時にタイトル画面のプレースホルダーが表示され、テストコマンドが失敗せず起動する。
   - _Requirements: 11.1_
   - _Boundary: Tooling, AppShell_
-- [ ] 1.2 ゲーム全体で使う正規状態、入力、コマンド、イベント、表示モデルの共通契約を定義する
+- [x] 1.2 ゲーム全体で使う正規状態、入力、コマンド、イベント、表示モデルの共通契約を定義する
   - `GameState`、`InputFrame`、`GameCommand`、`GameEvent`、`GameViewModel`、`SceneViewModel` の整合した型を揃える。
   - 主要ゲージ、タスク上限、結果表示に必要な最小限の値が共通契約に含まれるようにする。
   - 完了すると共通契約だけで Runtime、UI、Scene が同じ state shape を参照できる。
   - _Requirements: 2.2, 3.1, 4.2, 10.1_
   - _Boundary: GameState, InputFrame, ViewModels_
-- [ ] 1.3 InMemory store、Clock、Random、GameRuntime の土台を実装する
+- [x] 1.3 InMemory store、Clock、Random、GameRuntime の土台を実装する
   - phase ごとの command dispatch、購読、tick の基本経路を持つ Runtime を作る。
   - タイトル、権限確認、デバイスチェック、開始待機の phase を仮の view model で切り替えられるようにする。
   - 完了すると UI からの command に応じて phase が切り替わり、購読側が最新 view model を受け取れる。
@@ -21,19 +21,19 @@
   - _Boundary: GameRuntime, InMemoryGameStore_
 
 - [ ] 2. Foundation: センサー入力と開始前セットアップを成立させる
-- [ ] 2.1 (P) マイク権限、キャリブレーション、RMS snapshot を実装する
+- [x] 2.1 (P) マイク権限、キャリブレーション、RMS snapshot を実装する
   - マイク許可、ノイズ床計測、発声閾値、Too Loud 閾値を 1 セッション内で確定できるようにする。
   - 呼びかけ連打としーっ判定に必要な音量、ピーク、安定性の snapshot を返せるようにする。
   - 完了するとデバイスチェックでマイク準備完了か失敗理由を判定でき、playing 中に音量 snapshot を継続取得できる。
   - _Requirements: 1.1, 1.3, 1.5, 7.2, 7.4, 8.1, 8.2, 8.3, 8.4, 11.2, 11.3, 11.5, 11.7_
   - _Boundary: WebAudioAnalyzer_
-- [ ] 2.2 (P) カメラ権限、Worker 推論、顔位置 snapshot を実装する
+- [x] 2.2 (P) カメラ権限、Worker 推論、顔位置 snapshot を実装する
   - カメラ許可、MediaPipe 起動、顔検出ウォームアップ、最新 face box のキャッシュ取得を実装する。
   - 顔未検出、モデル起動失敗、Worker 起動失敗を区別して返せるようにする。
   - 完了するとデバイスチェックでカメラ準備完了か失敗理由を判定でき、playing 中に顔位置 snapshot を継続取得できる。
   - _Requirements: 1.1, 1.3, 1.5, 9.2, 9.3, 9.4, 11.2, 11.3, 11.5, 11.7_
   - _Boundary: MediaPipeFaceAdapter_
-- [ ] 2.3 InputFrameCollector と開始前デバイスチェック導線を統合する
+- [x] 2.3 InputFrameCollector と開始前デバイスチェック導線を統合する
   - keyboard、mouse、microphone、camera の snapshot を 1 フレームに束ねる collector を実装する。
   - 権限拒否、デバイス失敗、再試行、ready への遷移条件を Runtime と接続する。
   - 完了すると開始前画面でマイクとカメラの可否が表示され、両方成功した場合のみ ready へ進める。
@@ -41,37 +41,37 @@
   - _Boundary: InputFrameCollector, GameRuntime, SetupFlow_
 
 - [ ] 3. Core: ゲームルールと各タスクロジックを実装する
-- [ ] 3.1 ゲージ、タイマー、破綻条件、基本スコア更新を実装する
+- [x] 3.1 ゲージ、タイマー、破綻条件、基本スコア更新を実装する
   - 5 分タイマー、赤ちゃんの機嫌、親の心労、危険域、破綻継続時間、結果ランク計算の基礎を実装する。
   - タイムアップ、単独破綻、同時危険破綻の event を返せるようにする。
   - 完了すると入力なしの tick だけでも残り時間、主要ゲージ、破綻 phase 遷移が再現できる。
   - _Requirements: 2.2, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 10.5_
   - _Boundary: GaugeReducer, ScoreReducer, GameAggregator_
-- [ ] 3.2 タスク発生制御と TaskRegistry を実装する
+- [x] 3.2 タスク発生制御と TaskRegistry を実装する
   - 同時発生数、手元 2 件、センサー 2 件、マイク 1 件、カメラ 1 件の制約を守る scheduler を作る。
   - フェーズ後半ほど複合入力が必要になる重みづけと、focused hand task の切替規則を実装する。
   - 完了すると `playing` 中の tick で発生候補が制御され、各 task kind を registry 経由で更新できる。
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
   - _Boundary: GameScheduler, TaskRegistry_
-- [ ] 3.3 (P) 呼びかけ連打としーっのタスクロジックを実装する
+- [x] 3.3 (P) 呼びかけ連打としーっのタスクロジックを実装する
   - ノーツ判定、Perfect と Good、Miss、Too Loud、成功率に応じた効果を実装する。
   - 声量帯維持、無音時停止、無音継続時失敗、大声ペナルティを実装する。
   - 完了すると microphone snapshot だけで両タスクの進行、成功、失敗、機嫌変動を検証できる。
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
   - _Boundary: VoiceRhythmTaskLogic, ShhTaskLogic_
-- [ ] 3.4 (P) 顔ポジション合わせのタスクロジックを実装する
+- [x] 3.4 (P) 顔ポジション合わせのタスクロジックを実装する
   - 位置ずれ、上下ずれ、距離ずれのヒント生成と、必要維持時間の成功判定を実装する。
   - 顔未検出継続時の心労ペナルティと、後半の複数目標枠対応を支える状態更新を実装する。
   - 完了すると camera snapshot だけでヒント、保持時間、成功と失敗を検証できる。
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
   - _Boundary: FacePositionTaskLogic_
-- [ ] 3.5 (P) 片付けタスクのルールを実装する
+- [x] 3.5 (P) 片付けタスクのルールを実装する
   - フィールド内移動、拾う、収納する、部分介入、放置時の心労圧力を実装する。
   - 正しい収納先での完了、保持状態、連続収納ボーナスに必要な task state 更新を実装する。
   - 完了すると keyboard 入力とフィールド状態だけで片付け task の進捗と心労変動を検証できる。
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
   - _Boundary: CleanupTaskLogic_
-- [ ] 3.6 (P) ベビーフード作りタスクのルールを実装する
+- [x] 3.6 (P) ベビーフード作りタスクのルールを実装する
   - 食材選択、すり潰し、加熱、冷ます、食べさせるの工程進行と途中再開を実装する。
   - 適温成功、焦げ、冷めすぎ、品質差分、内部数値を隠した状態ラベルを実装する。
   - 完了すると mouse 入力と工程状態だけで料理 task の進捗、失敗、完了効果を検証できる。
@@ -79,7 +79,7 @@
   - _Boundary: CookingTaskLogic_
 
 - [ ] 4. Core: 描画と画面遷移のプレゼンテーションを実装する
-- [ ] 4.1 Phaser game host と focused hand task の scene 切替を実装する
+- [x] 4.1 Phaser game host と focused hand task の scene 切替を実装する
   - Runtime から受け取る scene view model に応じて、中央ゲームビューを差し替えられる host を作る。
   - cleanup と cooking を同じゲームコンテナ内で切り替え、GameState を Scene が保持しない形にする。
   - 完了すると focused hand task の変更に応じて、Phaser 側の表示が切り替わる。
@@ -167,5 +167,17 @@
 
 ## Implementation Notes
 
+- Phaser の初期導入だけでも build chunk warning が出るため、scene や asset が増える前に code splitting 方針を次タスク以降で確認する。
 - MediaPipe の `detectForVideo()` は同期実行なので、camera 側は Worker 分離を前提に進める。
 - マイクとカメラの開始条件は secure context に依存するため、ローカル開発と E2E 実行は localhost 前提で確認する。
+- `GameRuntime.tick()` は 3.1 の `GameAggregator` 導入まで phase-safe な no-op に保ち、時間経過や終了判定の ownership を Runtime に持たせない。
+- `WebAudioAnalyzer` は `getUserMedia` と `AudioContext` を DI 可能にしてあるため、2.3 以降の統合では browser 実機依存を増やさず contract test を拡張できる。
+- `MediaPipeFaceAdapter` は `/models/face_landmarker.task` と `/vendor/mediapipe/wasm` を same-origin で前提にし、`CameraSnapshot.detection` の timestamp で stale 判定する。
+- setup phase では `InputFrameCollector` の最新 snapshot と calibration を Runtime 側で diagnostics として保持し、UI はその guidance を表示するだけに留める。
+- gameplay tick の ownership は `GameAggregator` に集約し、`GameRuntime` は input collect と state commit だけを担当する。baseline drift、collapse timer、result 生成は Core で閉じる。
+- `GameScheduler` は time band ごとの desired hand/sensor counts と kind weights を持ち、`TaskRegistry` は未実装 task logic を no-op dispatch table で受け止める。後続 task では registry 差し替えで個別ロジックを足せる。
+- `VoiceRhythmTaskLogic` は note cursor を `judgedCount` で管理し、`ShhTaskLogic` は `silentMs` を持って無音失敗を判定する。どちらも `TaskRegistry` の既定ロジックとして接続済み。
+- `FacePositionTaskLogic` は `missingMs` と `heldMs` を分けて持ち、no-face penalty と aligned hold 成功を camera snapshot だけで判定する。hint は target box 比較から純粋関数で返す。
+- `CleanupTaskLogic` は player position、carried item、item field state を task 内に持ち、pickup/store/idle pressure を keyboard snapshot だけで更新する。scene 側はこの domain state を描画するだけでよい。
+- `CookingTaskLogic` は `stepProgress`、`temperature`、`quality`、`isHeating`、`isReady` を持ち、`select -> mash -> heat -> cool -> feed` を mouse snapshot だけで遷移させる。焦げは task failure と gauge penalty で扱う。
+- `PhaserGameHost` は mount 時に 1 度だけ game を起動し、`MainScene` へ `SceneViewModel` を push して cleanup/cooking/title/idle の presentation を切り替える。scene 側は domain state を保持せず、view model 映像化だけを行う。
