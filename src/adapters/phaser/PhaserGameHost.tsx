@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { SceneViewModel } from '../../app/runtime/GameViewModelFactory';
+import { getSharedKeyboardAdapter } from '../input/KeyboardAdapter';
+import { getSharedMouseAdapter } from '../input/MouseAdapter';
 import type { SceneController } from './MainScene';
 
 const READY_MESSAGE = 'ゲームビューを準備中';
@@ -34,6 +36,11 @@ export function PhaserGameHost({ viewModel }: PhaserGameHostProps) {
   const [status, setStatus] = useState(READY_MESSAGE);
 
   viewModelRef.current = viewModel;
+
+  useEffect(() => {
+    getSharedKeyboardAdapter().setActive(viewModel.scene === 'cleanup');
+    getSharedMouseAdapter().setActive(viewModel.scene === 'cooking');
+  }, [viewModel.scene]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -81,6 +88,8 @@ export function PhaserGameHost({ viewModel }: PhaserGameHostProps) {
     return () => {
       isDisposed = true;
       sceneControllerRef.current = null;
+      getSharedKeyboardAdapter().setActive(false);
+      getSharedMouseAdapter().setActive(false);
       game?.destroy(true);
     };
   }, []);

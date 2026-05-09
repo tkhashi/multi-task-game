@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CameraHint } from '../../domain/input/CameraSnapshot';
+import type { CleanupTaskState, CookingTaskState } from '../../domain/tasks/TaskTypes';
 import { createInitialGameState, createGameViewModel } from './GameViewModelFactory';
+import { createSceneViewModel } from './GameViewModelFactory';
 
 describe('GameViewModelFactory setup guidance', () => {
   it.each<
@@ -83,5 +85,135 @@ describe('GameViewModelFactory setup guidance', () => {
 
     expect(viewModel.hud.sensors.microphone.helperText).toContain('環境音');
     expect(viewModel.hud.sensors.microphone.helperText).toContain('静かな');
+  });
+});
+
+describe('createSceneViewModel cleanup mapping', () => {
+  function createCleanupTask(): CleanupTaskState {
+    return {
+      id: 'cleanup-1',
+      kind: 'cleanup',
+      channel: 'hand',
+      inputType: 'keyboard',
+      title: 'おもちゃの片付け',
+      summary: '散らかったおもちゃを収納する',
+      urgency: 'urgent',
+      lifecycle: 'active',
+      progress: 1 / 3,
+      startedAtMs: 0,
+      updatedAtMs: 1_000,
+      totalItems: 3,
+      storedItems: 1,
+      remainingItems: 2,
+      playerPosition: { x: 5, y: 3 },
+      carriedItemId: 'block-2',
+      items: [
+        {
+          id: 'duck-1',
+          label: 'あひる',
+          targetStorage: 'basket',
+          pickupReward: 1,
+          storeReward: 2,
+          position: { x: 2, y: 2 },
+          picked: false,
+          stored: false,
+        },
+        {
+          id: 'block-2',
+          label: 'つみき',
+          targetStorage: 'box',
+          pickupReward: 1,
+          storeReward: 2,
+          position: { x: 5, y: 3 },
+          picked: true,
+          stored: false,
+        },
+        {
+          id: 'spoon-3',
+          label: 'スプーン',
+          targetStorage: 'kitchen',
+          pickupReward: 1,
+          storeReward: 2,
+          position: { x: 8.8, y: 5.2 },
+          picked: false,
+          stored: true,
+        },
+      ],
+    };
+  }
+
+  it('includes cleanup field entities for the focused cleanup task', () => {
+    const state = createInitialGameState();
+    const cleanupTask = createCleanupTask();
+
+    state.phase = 'playing';
+    state.focusedHandTaskId = cleanupTask.id;
+    state.activeTasks[cleanupTask.id] = cleanupTask;
+
+    const sceneViewModel = createSceneViewModel(state);
+
+    expect(sceneViewModel.scene).toBe('cleanup');
+    expect(sceneViewModel.cleanup).not.toBeNull();
+    expect(sceneViewModel.cleanup?.player.carrying).toBe(true);
+    expect(sceneViewModel.cleanup?.items).toHaveLength(3);
+    expect(sceneViewModel.cleanup?.items.find((item) => item.id === 'block-2')).toMatchObject({
+      carrying: true,
+      visible: true,
+    });
+    expect(sceneViewModel.cleanup?.items.find((item) => item.id === 'spoon-3')).toMatchObject({
+      stored: true,
+      visible: false,
+    });
+    expect(sceneViewModel.cleanup?.storages.map((storage) => storage.kind)).toEqual([
+      'basket',
+      'box',
+      'kitchen',
+    ]);
+  });
+});
+
+describe('createSceneViewModel cooking mapping', () => {
+  function createCookingTask(): CookingTaskState {
+    return {
+      id: 'cooking-1',
+      kind: 'cooking',
+      channel: 'hand',
+      inputType: 'mouse',
+      title: 'ベビーフード作り',
+      summary: '工程を進める',
+      urgency: 'attention',
+      lifecycle: 'active',
+      progress: 0.64,
+      startedAtMs: 0,
+      updatedAtMs: 2_000,
+      step: 'heat',
+      cue: 'soon',
+      stepProgress: 0.35,
+      temperature: 76,
+      quality: 88,
+      isHeating: true,
+      isReady: false,
+    };
+  }
+
+  it('includes cooking scene details for the focused cooking task', () => {
+    const state = createInitialGameState();
+    const cookingTask = createCookingTask();
+
+    state.phase = 'playing';
+    state.focusedHandTaskId = cookingTask.id;
+    state.activeTasks[cookingTask.id] = cookingTask;
+
+    const sceneViewModel = createSceneViewModel(state);
+
+    expect(sceneViewModel.scene).toBe('cooking');
+    expect(sceneViewModel.cooking).not.toBeNull();
+    expect(sceneViewModel.cooking).toMatchObject({
+      step: 'heat',
+      cueLabel: 'そろそろ',
+      qualityLabel: 'なめらか',
+      isHeating: true,
+    });
+    expect(sceneViewModel.cooking?.temperatureBand).toBe('hot');
   });
 });

@@ -2,17 +2,10 @@ import type { InputFrame } from '../../input/InputFrame';
 import type { TaskUpdateResult } from '../TaskRegistry';
 import type {
   CleanupFieldItem,
-  CleanupStorageKind,
   CleanupTaskState,
   FieldPosition,
 } from '../TaskTypes';
-
-const FIELD_BOUNDS = {
-  minX: 0,
-  maxX: 10,
-  minY: 0,
-  maxY: 6,
-};
+import { CLEANUP_FIELD_BOUNDS, CLEANUP_STORAGE_POSITIONS } from './CleanupField';
 const MOVE_SPEED_UNITS_PER_SECOND = 2;
 const DASH_MULTIPLIER = 1.75;
 const ITEM_PICKUP_RANGE = 0.75;
@@ -20,12 +13,6 @@ const STORAGE_RANGE = 1;
 const BASE_IDLE_STRESS_PER_SECOND = 0.3;
 const PER_ITEM_IDLE_STRESS_PER_SECOND = 0.06;
 const DASH_STRESS_PER_SECOND = 0.1;
-
-const STORAGE_POSITIONS: Record<CleanupStorageKind, FieldPosition> = {
-  basket: { x: 1.5, y: 1.5 },
-  box: { x: 8.4, y: 1.4 },
-  kitchen: { x: 8.8, y: 5.2 },
-};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -44,8 +31,8 @@ function movePlayer(
     position.y + input.keyboard.movement.vertical * MOVE_SPEED_UNITS_PER_SECOND * speedMultiplier * deltaSeconds;
 
   return {
-    x: clamp(nextX, FIELD_BOUNDS.minX, FIELD_BOUNDS.maxX),
-    y: clamp(nextY, FIELD_BOUNDS.minY, FIELD_BOUNDS.maxY),
+    x: clamp(nextX, CLEANUP_FIELD_BOUNDS.minX, CLEANUP_FIELD_BOUNDS.maxX),
+    y: clamp(nextY, CLEANUP_FIELD_BOUNDS.minY, CLEANUP_FIELD_BOUNDS.maxY),
   };
 }
 
@@ -61,7 +48,7 @@ function canStore(
   item: CleanupFieldItem,
   playerPosition: FieldPosition,
 ): boolean {
-  return distance(STORAGE_POSITIONS[item.targetStorage], playerPosition) <= STORAGE_RANGE;
+  return distance(CLEANUP_STORAGE_POSITIONS[item.targetStorage], playerPosition) <= STORAGE_RANGE;
 }
 
 function isPickupPressed(input: InputFrame): boolean {
@@ -126,7 +113,7 @@ export function updateCleanupTask(
     if (carriedItem && canStore(carriedItem, playerPosition)) {
       carriedItem.stored = true;
       carriedItem.picked = false;
-      carriedItem.position = { ...STORAGE_POSITIONS[carriedItem.targetStorage] };
+      carriedItem.position = { ...CLEANUP_STORAGE_POSITIONS[carriedItem.targetStorage] };
       carriedItemId = null;
       gaugeDelta = {
         parentStress: -(carriedItem.storeReward + 1),

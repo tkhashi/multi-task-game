@@ -85,35 +85,35 @@
   - 完了すると focused hand task の変更に応じて、Phaser 側の表示が切り替わる。
   - _Requirements: 4.5, 10.1_
   - _Boundary: PhaserGameHost, MainScene_
-- [ ] 4.2 (P) 片付けビューと keyboard 入力連携を実装する
+- [x] 4.2 (P) 片付けビューと keyboard 入力連携を実装する
   - 片付け用フィールド、親キャラクター、散らかった物、収納先の見た目と操作反映を作る。
   - keyboard adapter からの入力が focused cleanup task にだけ反映されるようにする。
   - 完了すると片付け task 発生中に、移動、拾う、収納の結果が画面上で確認できる。
   - _Depends: 3.5, 4.1_
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 10.4_
   - _Boundary: PhaserSceneBridge, KeyboardAdapter_
-- [ ] 4.3 (P) ベビーフードビューと mouse 入力連携を実装する
+- [x] 4.3 (P) ベビーフードビューと mouse 入力連携を実装する
   - 工程ごとの表示、円運動、加熱状態、冷ます待機、食べさせる操作の見た目を作る。
   - mouse adapter からの入力が focused cooking task にだけ反映されるようにする。
   - 完了すると料理 task 発生中に、工程進行と焦げや完成の状態が画面上で確認できる。
   - _Depends: 3.6, 4.1_
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 10.4_
   - _Boundary: PhaserSceneBridge, MouseAdapter_
-- [ ] 4.4 タイトル、権限確認、デバイスチェック、開始待機の各画面を実装する
+- [x] 4.4 タイトル、権限確認、デバイスチェック、開始待機の各画面を実装する
   - 権限の利用目的、非保存、非送信、再試行導線、開始可否を React 画面で表示する。
   - デバイスチェック成功時のみ本編開始できる操作導線を整える。
   - 完了すると setup phase 一式が React 画面だけで完結し、開始可否が目視で確認できる。
   - _Depends: 2.3_
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 11.4, 11.5, 11.6, 11.7_
   - _Boundary: ReactShell, SetupScreens_
-- [ ] 4.5 プレイ中 HUD とセンサー状態表示を実装する
+- [x] 4.5 プレイ中 HUD とセンサー状態表示を実装する
   - 残り時間、2 つの主要ゲージ、発生中 task 一覧、急ぎ度、センサー状態、危険表示を常時表示する。
   - 音量数値や顔座標などの内部数値を露出せず、ラベル、アイコン、動きで状態を伝える。
   - 完了するとプレイ中画面で、次の優先行動を判断できる HUD 情報が一画面で見える。
   - _Depends: 1.3, 3.1_
   - _Requirements: 2.3, 3.4, 10.1, 10.2, 10.3, 10.4, 11.5, 11.6_
   - _Boundary: ReactShell, GaugeHud, TaskPanels_
-- [ ] 4.6 ポーズ、ゲームオーバー、リザルト画面を実装する
+- [x] 4.6 ポーズ、ゲームオーバー、リザルト画面を実装する
   - ポーズ復帰、ゲームオーバー理由、評価ランク、主要結果指標、一言コメントを表示する。
   - リトライ操作でタイトルへ戻る導線を screen component 側に用意する。
   - 完了するとセッション終了後に結果画面が表示され、リトライ導線が目視確認できる。
@@ -181,3 +181,8 @@
 - `CleanupTaskLogic` は player position、carried item、item field state を task 内に持ち、pickup/store/idle pressure を keyboard snapshot だけで更新する。scene 側はこの domain state を描画するだけでよい。
 - `CookingTaskLogic` は `stepProgress`、`temperature`、`quality`、`isHeating`、`isReady` を持ち、`select -> mash -> heat -> cool -> feed` を mouse snapshot だけで遷移させる。焦げは task failure と gauge penalty で扱う。
 - `PhaserGameHost` は mount 時に 1 度だけ game を起動し、`MainScene` へ `SceneViewModel` を push して cleanup/cooking/title/idle の presentation を切り替える。scene 側は domain state を保持せず、view model 映像化だけを行う。
+- `cleanup` scene では `SceneViewModel.cleanup` に normalized field entities を載せ、`KeyboardAdapter` は shared instance を host 側で active/inactive 切替する。focused cleanup 以外では idle snapshot に戻す。
+- `cooking` scene では `SceneViewModel.cooking` に step/cue/quality/temperature band を載せ、`MouseAdapter` も shared instance を host 側で active/inactive 切替する。drag/release delta は sample ごとに消費する。
+- setup phase では React 側で privacy note、開始条件、マイク/カメラ状態カードを出し分ける。`ready` は開始可能、`deviceCheck` は再試行前提、`permissionCheck` はローカル処理方針の明示を優先する。
+- playing / paused phase では React 側に HUD グリッドを出し、残り時間、2 ゲージ、task 一覧、センサー状態、警告を 1 画面に集約する。warning と sensor は色だけでなく文言で状態を伝える。
+- gameOver / result phase では `GameViewModel.result` だけで評価ランク、最終ゲージ、成功/部分介入/複合操作/失敗数、一言コメントを描画する。paused は HUD を残したまま overlay で復帰導線を重ねる。
